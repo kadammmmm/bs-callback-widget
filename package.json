@@ -1,0 +1,31 @@
+{
+  "name": "bs-callback-widget",
+  "version": "1.0.0",
+  "description": "Abandoned Call Callback Widget for Webex Contact Center Agent Desktop",
+  "type": "module",
+  "main": "dist/callback-widget.js",
+  "scripts": {
+    "build": "rollup -c",
+    "build:watch": "rollup -c -w",
+    "deploy": "npm run build && cp dist/callback-widget.js index.js",
+    "start:backend": "node backend/server.js"
+  },
+  "dependencies": {
+    "lit": "^3.1.0"
+  },
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-terser": "^0.4.4",
+    "rollup": "^4.9.6"
+  },
+  "keywords": [
+    "webex",
+    "contact-center",
+    "wxcc",
+    "callback",
+    "widget",
+    "agent-desktop"
+  ],
+  "author": "bucher+suter",
+  "license": "MIT"
+}
