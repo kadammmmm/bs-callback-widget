@@ -825,6 +825,8 @@ class CallbackWidget extends LitElement {
             destination: callback.ani,
             direction: 'OUTBOUND',
             origin: this.outdialAni || callback.ani,
+            mediaType: 'telephony',
+            outboundType: 'OUTDIAL',
             attributes: {
               callbackId: callback.id,
               originalQueue: callback.queue
@@ -838,11 +840,27 @@ class CallbackWidget extends LitElement {
           const dialResult = await Desktop.dialer.startOutdial(outdialPayload);
           console.log('[CallbackWidget] Desktop.dialer result:', dialResult);
         } catch (dialerErr) {
-          console.warn('[CallbackWidget] Desktop.dialer failed:', dialerErr);
-          console.warn('[CallbackWidget] Error details:', JSON.stringify(dialerErr, null, 2));
+          console.error('[CallbackWidget] Desktop.dialer failed');
+          console.error('[CallbackWidget] Error object:', dialerErr);
+          console.error('[CallbackWidget] Error type:', typeof dialerErr);
+          console.error('[CallbackWidget] Error keys:', dialerErr ? Object.keys(dialerErr) : 'null');
+          console.error('[CallbackWidget] Error JSON:', JSON.stringify(dialerErr, null, 2));
+          console.error('[CallbackWidget] Error.message:', dialerErr?.message);
+          console.error('[CallbackWidget] Error.reason:', dialerErr?.reason);
+          console.error('[CallbackWidget] Error.error:', dialerErr?.error);
+          console.error('[CallbackWidget] Error.data:', dialerErr?.data);
+          console.error('[CallbackWidget] Error.details:', dialerErr?.details);
+          console.error('[CallbackWidget] Error.response:', dialerErr?.response);
           
-          // Re-throw with more context
-          throw new Error(`Outdial failed: ${dialerErr.message || dialerErr.reason || 'Unknown error'}. Check Entry Point and ANI configuration.`);
+          // Try to extract any useful error info
+          const errorMsg = dialerErr?.message || 
+                          dialerErr?.reason || 
+                          dialerErr?.error?.message ||
+                          dialerErr?.data?.message ||
+                          dialerErr?.details ||
+                          (typeof dialerErr === 'string' ? dialerErr : JSON.stringify(dialerErr));
+          
+          throw new Error(`Outdial failed: ${errorMsg}`);
         }
       } else {
         console.warn('[CallbackWidget] Desktop.dialer.startOutdial not available');
