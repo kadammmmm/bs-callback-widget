@@ -16,10 +16,16 @@ class CallbackWidget extends LitElement {
     agentState: { type: String },
     claimingId: { type: String },
     dialingId: { type: String },
-    completingId: { type: String },
     backendUrl: { type: String, attribute: 'backend-url' },
     outdialEp: { type: String, attribute: 'outdial-ep' },
-    outdialAni: { type: String, attribute: 'outdial-ani' }
+    outdialAni: { type: String, attribute: 'outdial-ani' },
+    // Support for multiple ANIs - can be comma-separated string or JSON array
+    // Example: "+18005551234,+18005555678" or JSON array in layout
+    outdialAniList: { type: Array, attribute: 'outdial-ani-list' },
+    // Currently selected ANI (for multi-ANI scenarios)
+    selectedAni: { type: String },
+    // Show ANI selector modal
+    showAniSelector: { type: Boolean }
   };
 
   static styles = css`
@@ -582,6 +588,121 @@ class CallbackWidget extends LitElement {
     .callback-list::-webkit-scrollbar-thumb:hover {
       background: #94a3b8;
     }
+
+    /* Modal styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: var(--bg-color);
+      border-radius: 12px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+      width: 90%;
+      max-width: 400px;
+      max-height: 80vh;
+      overflow: hidden;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-color);
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      padding: 4px;
+      cursor: pointer;
+      color: var(--text-muted);
+      border-radius: 4px;
+    }
+
+    .modal-close:hover {
+      background: var(--bg-hover);
+      color: var(--text-color);
+    }
+
+    .modal-body {
+      padding: 20px;
+    }
+
+    .modal-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .ani-options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .ani-option {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      background: var(--bg-color);
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-color);
+    }
+
+    .ani-option:hover {
+      border-color: var(--primary-color);
+      background: rgba(0, 188, 235, 0.05);
+    }
+
+    .ani-option.selected {
+      border-color: var(--primary-color);
+      background: rgba(0, 188, 235, 0.1);
+    }
+
+    .ani-option svg {
+      color: var(--primary-color);
+    }
+
+    .btn-secondary {
+      padding: 8px 16px;
+      background: var(--bg-color);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      color: var(--text-color);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+    }
   `;
 
   constructor() {
@@ -593,16 +714,69 @@ class CallbackWidget extends LitElement {
     this.agentState = 'Unknown';
     this.claimingId = null;
     this.dialingId = null;
-    this.completingId = null;
     this.backendUrl = 'https://bs-callback-widget-production.up.railway.app/api';
     this.outdialEp = null;  // Outdial Entry Point ID - passed from layout
-    this.outdialAni = null; // Outdial ANI - passed from layout
+    this.outdialAni = null; // Single Outdial ANI - passed from layout
+    this.outdialAniList = null; // Multiple ANIs - array or comma-separated
+    this.selectedAni = null; // Currently selected ANI
+    this.showAniSelector = false; // Show ANI selection modal
+    this._pendingDialCallback = null; // Callback waiting for ANI selection
     this._sdkLogger = null;
     this._pollInterval = null;
   }
 
   connectedCallback() {
     super.connectedCallback();
+    
+    // Log all properties received from the layout
+    console.log('[CallbackWidget] === WIDGET CONNECTED ===');
+    console.log('[CallbackWidget] this.outdialAni:', this.outdialAni);
+    console.log('[CallbackWidget] this.outdialEp:', this.outdialEp);
+    console.log('[CallbackWidget] this.backendUrl:', this.backendUrl);
+    
+    // Deep inspect outdialAni
+    if (this.outdialAni) {
+      console.log('[CallbackWidget] outdialAni type:', typeof this.outdialAni);
+      console.log('[CallbackWidget] outdialAni constructor:', this.outdialAni?.constructor?.name);
+      
+      try {
+        // Try spread
+        const spread = [...this.outdialAni];
+        console.log('[CallbackWidget] outdialAni spread:', spread);
+        spread.forEach((item, i) => {
+          console.log(`[CallbackWidget] ANI[${i}]:`, item, 'type:', typeof item);
+          if (typeof item === 'object' && item !== null) {
+            console.log(`[CallbackWidget] ANI[${i}] keys:`, Object.keys(item));
+            console.log(`[CallbackWidget] ANI[${i}] JSON:`, JSON.stringify(item));
+          }
+        });
+      } catch (e) {
+        console.log('[CallbackWidget] Could not spread outdialAni:', e.message);
+      }
+      
+      try {
+        // Try slice
+        if (typeof this.outdialAni.slice === 'function') {
+          console.log('[CallbackWidget] outdialAni.slice():', this.outdialAni.slice());
+        }
+      } catch (e) {
+        console.log('[CallbackWidget] slice failed:', e.message);
+      }
+      
+      try {
+        // Try toJSON
+        if (typeof this.outdialAni.toJSON === 'function') {
+          console.log('[CallbackWidget] outdialAni.toJSON():', this.outdialAni.toJSON());
+        }
+      } catch (e) {
+        console.log('[CallbackWidget] toJSON failed:', e.message);
+      }
+    }
+    
+    // Store reference to this widget on window for debugging
+    window._callbackWidget = this;
+    console.log('[CallbackWidget] Widget stored at window._callbackWidget for debugging');
+    
     this._initSDK();
     this._startPolling();
   }
@@ -830,55 +1004,130 @@ class CallbackWidget extends LitElement {
       // Get the outdial entry point - prefer widget property, then callback data
       const entryPointId = this.outdialEp || callback.entryPointId;
       console.log('[CallbackWidget] Outdial Entry Point:', entryPointId);
-      console.log('[CallbackWidget] Outdial ANI (origin):', this.outdialAni);
 
       if (!entryPointId) {
         throw new Error('No Outdial Entry Point configured. Please set outdialEp in the desktop layout.');
       }
 
-      // Origin must be a valid Outdial ANI configured in WxCC, NOT the destination number
-      // The outdialAni might be a MobX proxy or an array, so we need to extract the actual string
-      let originAni = this.outdialAni;
-      
-      // Handle MobX proxy objects
-      if (originAni && typeof originAni === 'object') {
-        console.log('[CallbackWidget] outdialAni is an object, extracting value...');
-        console.log('[CallbackWidget] outdialAni raw:', originAni);
+      // Get available ANIs
+      const availableAnis = this._getAvailableAnis();
+      console.log('[CallbackWidget] Available ANIs:', availableAnis);
+
+      if (availableAnis.length === 0) {
+        throw new Error('No Outdial ANI configured. Set outdialAni or outdialAniList in the desktop layout.');
+      }
+
+      let originAni;
+
+      // If multiple ANIs and none selected, show selector
+      if (availableAnis.length > 1 && !this.selectedAni) {
+        console.log('[CallbackWidget] Multiple ANIs available, showing selector');
+        this._pendingDialCallback = callback;
+        this.showAniSelector = true;
+        this.dialingId = null; // Reset since we're waiting for selection
+        return;
+      }
+
+      // Use selected ANI or the only available one
+      originAni = this.selectedAni || availableAnis[0];
+      console.log('[CallbackWidget] Using origin ANI:', originAni);
+
+      // Proceed with dial
+      await this._executeOutdial(callback, entryPointId, originAni);
+
+    } catch (err) {
+      console.error('[CallbackWidget] Dial error:', err);
+      this.error = err.message;
+      this.dialingId = null;
+    }
+  }
+
+  /**
+   * Get list of available ANIs from various sources
+   */
+  _getAvailableAnis() {
+    const anis = [];
+
+    // 1. Check outdialAniList (comma-separated or array)
+    if (this.outdialAniList) {
+      if (typeof this.outdialAniList === 'string') {
+        // Comma-separated string
+        const parsed = this.outdialAniList.split(',').map(a => a.trim()).filter(a => a.length > 5);
+        anis.push(...parsed);
+      } else if (Array.isArray(this.outdialAniList)) {
+        anis.push(...this.outdialAniList.filter(a => typeof a === 'string' && a.length > 5));
+      }
+    }
+
+    // 2. Check single outdialAni
+    if (this.outdialAni && typeof this.outdialAni === 'string' && this.outdialAni.length > 5) {
+      if (!anis.includes(this.outdialAni)) {
+        anis.push(this.outdialAni);
+      }
+    }
+
+    // 3. Try to extract from MobX proxy (if outdialAni is an object)
+    if (this.outdialAni && typeof this.outdialAni === 'object') {
+      try {
+        let extracted = [];
         
-        // If it's an array or has a data property that's an array
-        if (Array.isArray(originAni)) {
-          originAni = originAni[0];
-        } else if (originAni.data && Array.isArray(originAni.data)) {
-          originAni = originAni.data[0];
-        } else if (originAni.value) {
-          originAni = originAni.value;
-        } else if (originAni.ani) {
-          originAni = originAni.ani;
+        if (typeof this.outdialAni.slice === 'function') {
+          extracted = this.outdialAni.slice();
+        } else if (typeof this.outdialAni.toJSON === 'function') {
+          extracted = this.outdialAni.toJSON();
+        } else if (this.outdialAni.data && Array.isArray(this.outdialAni.data)) {
+          extracted = this.outdialAni.data;
         }
-        
-        // If still an object, try to get the first property value
-        if (originAni && typeof originAni === 'object') {
-          const keys = Object.keys(originAni);
-          if (keys.length > 0 && typeof originAni[keys[0]] === 'string') {
-            originAni = originAni[keys[0]];
-          }
+
+        if (Array.isArray(extracted)) {
+          extracted.forEach(item => {
+            const ani = typeof item === 'string' ? item :
+                       (item?.id || item?.name || item?.ani || item?.number || item?.value);
+            if (ani && typeof ani === 'string' && ani.length > 5 && !anis.includes(ani)) {
+              anis.push(ani);
+            }
+          });
         }
-        
-        console.log('[CallbackWidget] Extracted originAni:', originAni);
+      } catch (e) {
+        console.warn('[CallbackWidget] Could not extract ANIs from MobX proxy:', e);
       }
-      
-      // Ensure it's a string
-      if (originAni && typeof originAni !== 'string') {
-        console.warn('[CallbackWidget] originAni is not a string:', typeof originAni, originAni);
-        originAni = String(originAni);
-      }
+    }
 
-      if (!originAni || originAni === '[object Object]' || originAni === 'undefined') {
-        throw new Error('No Outdial ANI configured. Please configure an Outdial ANI in the agent profile in Control Hub.');
-      }
+    return anis;
+  }
 
-      console.log('[CallbackWidget] Final origin ANI:', originAni);
+  /**
+   * Handle ANI selection from modal
+   */
+  _selectAni(ani) {
+    console.log('[CallbackWidget] ANI selected:', ani);
+    this.selectedAni = ani;
+    this.showAniSelector = false;
 
+    // If there's a pending dial, execute it
+    if (this._pendingDialCallback) {
+      const callback = this._pendingDialCallback;
+      this._pendingDialCallback = null;
+      this._dialCallback(callback);
+    }
+  }
+
+  /**
+   * Cancel ANI selection
+   */
+  _cancelAniSelection() {
+    this.showAniSelector = false;
+    this._pendingDialCallback = null;
+    this.dialingId = null;
+  }
+
+  /**
+   * Execute the actual outdial
+   */
+  async _executeOutdial(callback, entryPointId, originAni) {
+    this.dialingId = callback.id;
+
+    try {
       // Determine the WxCC API region
       const datacenter = this._getDatacenter();
       const apiBase = `https://api.wxcc-${datacenter}.cisco.com`;
@@ -893,53 +1142,23 @@ class CallbackWidget extends LitElement {
             entryPointId: entryPointId,
             destination: callback.ani,
             direction: 'OUTBOUND',
-            origin: originAni,  // Use the extracted string ANI
+            origin: originAni,
             mediaType: 'telephony',
             outboundType: 'OUTDIAL',
-            attributes: {},  // Keep attributes empty like the SDK example
+            attributes: {},
           }
         };
         
         console.log('[CallbackWidget] Outdial payload:', JSON.stringify(outdialPayload, null, 2));
         
-        try {
-          const dialResult = await Desktop.dialer.startOutdial(outdialPayload);
-          console.log('[CallbackWidget] Desktop.dialer result:', dialResult);
-        } catch (dialerErr) {
-          console.error('[CallbackWidget] Desktop.dialer failed');
-          console.error('[CallbackWidget] Error object:', dialerErr);
-          console.error('[CallbackWidget] Error type:', typeof dialerErr);
-          console.error('[CallbackWidget] Error keys:', dialerErr ? Object.keys(dialerErr) : 'null');
-          console.error('[CallbackWidget] Error JSON:', JSON.stringify(dialerErr, null, 2));
-          console.error('[CallbackWidget] Error.message:', dialerErr?.message);
-          console.error('[CallbackWidget] Error.reason:', dialerErr?.reason);
-          console.error('[CallbackWidget] Error.error:', dialerErr?.error);
-          console.error('[CallbackWidget] Error.data:', dialerErr?.data);
-          console.error('[CallbackWidget] Error.details:', dialerErr?.details);
-          console.error('[CallbackWidget] Error.response:', dialerErr?.response);
-          
-          // Try to extract any useful error info
-          const errorMsg = dialerErr?.message || 
-                          dialerErr?.reason || 
-                          dialerErr?.error?.message ||
-                          dialerErr?.data?.message ||
-                          dialerErr?.details ||
-                          (typeof dialerErr === 'string' ? dialerErr : JSON.stringify(dialerErr));
-          
-          throw new Error(`Outdial failed: ${errorMsg}`);
-        }
+        const dialResult = await Desktop.dialer.startOutdial(outdialPayload);
+        console.log('[CallbackWidget] Desktop.dialer result:', dialResult);
       } else {
         console.warn('[CallbackWidget] Desktop.dialer.startOutdial not available');
-        console.log('[CallbackWidget] Desktop.dialer:', Desktop.dialer);
-        console.log('[CallbackWidget] Available Desktop methods:', Object.keys(Desktop));
         
-        // Check for alternative dial methods
         if (Desktop.dialer?.dial) {
           console.log('[CallbackWidget] Trying Desktop.dialer.dial');
           await Desktop.dialer.dial(callback.ani);
-        } else if (Desktop.actions?.outdial) {
-          console.log('[CallbackWidget] Trying Desktop.actions.outdial');
-          await Desktop.actions.outdial({ destination: callback.ani });
         } else {
           throw new Error('No outdial method available. Please dial manually: ' + callback.ani);
         }
@@ -947,26 +1166,33 @@ class CallbackWidget extends LitElement {
 
       this._log('Outdial initiated', { callbackId: callback.id, ani: callback.ani });
 
-      // Mark as dialed in backend
-      await fetch(`${this.backendUrl}/callbacks/${callback.id}/dial`, {
+      // Mark as completed and remove from list (call disposition handled by Cisco Desktop)
+      await fetch(`${this.backendUrl}/callbacks/${callback.id}/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           agentId: this.agentId,
-          dialedAt: new Date().toISOString()
+          outcome: 'dialed',
+          completedAt: new Date().toISOString()
         })
       });
 
-      await this._fetchCallbacks();
+      // Remove from local list immediately for better UX
+      this.callbacks = this.callbacks.filter(c => c.id !== callback.id);
+
+      this._log('Callback completed and removed', { callbackId: callback.id });
 
     } catch (err) {
       console.error('[CallbackWidget] Dial error:', err);
-      console.error('[CallbackWidget] Error name:', err.name);
-      console.error('[CallbackWidget] Error message:', err.message);
-      console.error('[CallbackWidget] Error stack:', err.stack);
       
-      this._log('Dial failed', { error: err.message || String(err) }, 'error');
-      this.error = 'Dial failed: ' + (err.message || String(err));
+      // Extract useful error message
+      let errorMsg = err.message || String(err);
+      if (err.details?.msg?.errorMessage) {
+        errorMsg = err.details.msg.errorMessage;
+      }
+      
+      this._log('Dial failed', { error: errorMsg }, 'error');
+      this.error = 'Dial failed: ' + errorMsg;
     } finally {
       this.dialingId = null;
     }
@@ -992,35 +1218,6 @@ class CallbackWidget extends LitElement {
       console.warn('[CallbackWidget] Could not determine datacenter:', e);
     }
     return 'us1'; // Default
-  }
-
-  async _completeCallback(callback, outcome) {
-    this.completingId = callback.id;
-
-    try {
-      const response = await fetch(`${this.backendUrl}/callbacks/${callback.id}/complete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          agentId: this.agentId,
-          outcome: outcome,
-          completedAt: new Date().toISOString()
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Complete failed');
-      }
-
-      this._log('Completed callback', { callbackId: callback.id, outcome });
-      await this._fetchCallbacks();
-
-    } catch (err) {
-      this._log('Complete failed', { error: err.message }, 'error');
-      this.error = err.message;
-    } finally {
-      this.completingId = null;
-    }
   }
 
   _dismissError() {
@@ -1055,9 +1252,8 @@ class CallbackWidget extends LitElement {
 
   _getStats() {
     return {
-      pending: this.callbacks.filter(c => c.status === 'pending').length,
-      claimed: this.callbacks.filter(c => c.status === 'claimed').length,
-      dialed: this.callbacks.filter(c => c.status === 'dialed').length
+      pending: this.callbacks.filter(c => !c.claimedBy).length,
+      claimed: this.callbacks.filter(c => c.claimedBy).length
     };
   }
 
@@ -1104,11 +1300,6 @@ class CallbackWidget extends LitElement {
             <span class="stat-count">${stats.claimed}</span>
             <span class="stat-label">Claimed</span>
           </div>
-          <div class="stat-item">
-            <span class="stat-dot dialed"></span>
-            <span class="stat-count">${stats.dialed}</span>
-            <span class="stat-label">Dialed</span>
-          </div>
         </div>
 
         ${this.error ? html`
@@ -1142,6 +1333,49 @@ class CallbackWidget extends LitElement {
             ${this.callbacks.map(callback => this._renderCallbackCard(callback))}
           </div>
         `}
+
+        ${this.showAniSelector ? this._renderAniSelector() : ''}
+      </div>
+    `;
+  }
+
+  _renderAniSelector() {
+    const anis = this._getAvailableAnis();
+    
+    return html`
+      <div class="modal-overlay" @click=${this._cancelAniSelection}>
+        <div class="modal-content" @click=${(e) => e.stopPropagation()}>
+          <div class="modal-header">
+            <h3>Select Outbound Caller ID</h3>
+            <button class="modal-close" @click=${this._cancelAniSelection}>
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+          <div class="modal-body">
+            <p style="margin-bottom: 12px; color: var(--text-muted);">
+              Choose which number to display to the customer:
+            </p>
+            <div class="ani-options">
+              ${anis.map(ani => html`
+                <button 
+                  class="ani-option ${this.selectedAni === ani ? 'selected' : ''}"
+                  @click=${() => this._selectAni(ani)}
+                >
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                  </svg>
+                  <span>${this._formatPhoneNumber(ani)}</span>
+                </button>
+              `)}
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn-secondary" @click=${this._cancelAniSelection}>Cancel</button>
+          </div>
+        </div>
       </div>
     `;
   }
@@ -1149,15 +1383,12 @@ class CallbackWidget extends LitElement {
   _renderCallbackCard(callback) {
     const isClaimedByMe = callback.claimedBy === this.agentId;
     const isClaimedByOther = callback.claimedBy && !isClaimedByMe;
-    const isDialed = callback.status === 'dialed';
-    const isDialedByMe = isDialed && isClaimedByMe;
     const isClaiming = this.claimingId === callback.id;
     const isDialing = this.dialingId === callback.id;
-    const isCompleting = this.completingId === callback.id;
 
-    const statusClass = isDialedByMe ? 'dialed' : (isClaimedByMe ? 'claimed' : (isClaimedByOther ? 'claimed-by-other' : ''));
-    const statusLabel = isDialed ? 'Dialed' : (isClaimedByMe ? 'Claimed' : (isClaimedByOther ? 'Unavailable' : 'Pending'));
-    const statusBadgeClass = isDialed ? 'dialed' : (isClaimedByMe ? 'claimed' : (isClaimedByOther ? 'other' : 'pending'));
+    const statusClass = isClaimedByMe ? 'claimed' : (isClaimedByOther ? 'claimed-by-other' : '');
+    const statusLabel = isClaimedByMe ? 'Claimed' : (isClaimedByOther ? 'Unavailable' : 'Pending');
+    const statusBadgeClass = isClaimedByMe ? 'claimed' : (isClaimedByOther ? 'other' : 'pending');
 
     return html`
       <div class="callback-card ${statusClass}">
@@ -1200,63 +1431,10 @@ class CallbackWidget extends LitElement {
           </div>
         ` : ''}
 
-        ${isDialedByMe ? html`
-          <div class="outcome-section">
-            <div class="outcome-header">
-              <svg class="outcome-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                <polyline points="22 4 12 14.01 9 11.01"/>
-              </svg>
-              <span class="outcome-title">Call completed? Select outcome:</span>
-            </div>
-            <div class="outcome-buttons">
-              <button 
-                class="outcome-btn connected"
-                @click=${() => this._completeCallback(callback, 'connected')}
-                ?disabled=${isCompleting}
-              >
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                  <polyline points="22 4 12 14.01 9 11.01"/>
-                </svg>
-                Connected
-              </button>
-              <button 
-                class="outcome-btn voicemail"
-                @click=${() => this._completeCallback(callback, 'voicemail')}
-                ?disabled=${isCompleting}
-              >
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="5.5" cy="11.5" r="4.5"/>
-                  <circle cx="18.5" cy="11.5" r="4.5"/>
-                  <line x1="5.5" y1="16" x2="18.5" y2="16"/>
-                </svg>
-                Voicemail
-              </button>
-              <button 
-                class="outcome-btn no-answer"
-                @click=${() => this._completeCallback(callback, 'no-answer')}
-                ?disabled=${isCompleting}
-              >
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/>
-                  <line x1="1" y1="1" x2="23" y2="23"/>
-                </svg>
-                No Answer
-              </button>
-              <button 
-                class="outcome-btn wrong-number"
-                @click=${() => this._completeCallback(callback, 'wrong-number')}
-                ?disabled=${isCompleting}
-              >
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <line x1="15" y1="9" x2="9" y2="15"/>
-                  <line x1="9" y1="9" x2="15" y2="15"/>
-                </svg>
-                Wrong #
-              </button>
-            </div>
+        ${callback.callerName ? html`
+          <div class="card-context">
+            <div class="card-context-label">Caller</div>
+            ${callback.callerName}
           </div>
         ` : ''}
 
@@ -1276,7 +1454,7 @@ class CallbackWidget extends LitElement {
             </button>
           ` : ''}
 
-          ${isClaimedByMe && !isDialed ? html`
+          ${isClaimedByMe ? html`
             <button 
               class="action-btn success"
               @click=${() => this._dialCallback(callback)}
@@ -1293,21 +1471,6 @@ class CallbackWidget extends LitElement {
               @click=${() => this._releaseCallback(callback)}
             >
               Release
-            </button>
-          ` : ''}
-
-          ${isDialedByMe ? html`
-            <button 
-              class="action-btn secondary"
-              @click=${() => this._dialCallback(callback)}
-              ?disabled=${isDialing}
-              title="Retry call"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M23 4v6h-6M1 20v-6h6"/>
-                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-              </svg>
-              ${isDialing ? 'Dialing...' : 'Redial'}
             </button>
           ` : ''}
 

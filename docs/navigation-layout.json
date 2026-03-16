@@ -6,7 +6,7 @@
     "3. Add this object to the navigation array",
     "4. Import the modified layout back to WxCC",
     "5. Assign to your teams",
-    "6. IMPORTANT: outdialEp and outdialAni must be set for the Dial button to work"
+    "6. REQUIRED: Set outdialEp and either outdialAni (single) or outdialAniList (multiple)"
   ],
 
   "_add_to_navigation_array": {
@@ -30,8 +30,9 @@
             "backendUrl": "https://bs-callback-widget-production.up.railway.app/api",
             "accessToken": "$STORE.auth.accessToken",
             "outdialEp": "$STORE.agent.outDialEp",
-            "outdialAni": "$STORE.agent.outDialAni"
-          }
+            "outdialAni": "+18005551234"
+          },
+          "_comment_outdialAni": "Single ANI - agent uses this for all calls"
         },
         "main-area": {
           "comp": "agentx-wc-interaction-control"
@@ -47,40 +48,15 @@
     }
   },
 
-  "_alternative_full_width": {
-    "_comment": "Use this if you want callbacks to take the full page width",
-    "nav": {
-      "label": "Callbacks",
-      "icon": "call-log",
-      "iconType": "momentum",
-      "navigateTo": "callbacks",
-      "align": "top"
+  "_multi_ani_example": {
+    "_comment": "Use this format if agents need to choose from multiple ANIs",
+    "properties": {
+      "backendUrl": "https://bs-callback-widget-production.up.railway.app/api",
+      "accessToken": "$STORE.auth.accessToken",
+      "outdialEp": "$STORE.agent.outDialEp",
+      "outdialAniList": "+18005551234,+18005555678,+18005559999"
     },
-    "page": {
-      "id": "callbacks",
-      "widgets": {
-        "callback-area": {
-          "comp": "bs-callback-widget",
-          "script": "https://kadammmmm.github.io/bs-callback-widget/index.js",
-          "attributes": {
-            "darkmode": "$STORE.app.darkMode"
-          },
-          "properties": {
-            "backendUrl": "https://bs-callback-widget-production.up.railway.app/api",
-            "accessToken": "$STORE.auth.accessToken",
-            "outdialEp": "$STORE.agent.outDialEp",
-            "outdialAni": "$STORE.agent.outDialAni"
-          }
-        }
-      },
-      "layout": {
-        "areas": [["callback-area"]],
-        "size": {
-          "cols": [1],
-          "rows": [1]
-        }
-      }
-    }
+    "_note": "When multiple ANIs configured, agent will see a selection modal before dialing"
   },
 
   "_icon_options": [
