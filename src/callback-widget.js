@@ -644,8 +644,34 @@ class CallbackWidget extends LitElement {
         this.agentState = agentInfo?.subStatus || agentInfo?.status || 'Available';
       }
 
+      // Get Outdial ANI from agent profile if not set via property
+      if (!this.outdialAni) {
+        try {
+          // Try to get from Desktop.agentStateInfo
+          const agentData = Desktop.agentStateInfo?.latestData;
+          console.log('[CallbackWidget] Looking for outdialAni in agentData:', agentData);
+          
+          // The outdial ANI might be in different places depending on config
+          this.outdialAni = agentData?.outDialAni || 
+                           agentData?.outdialAni ||
+                           agentData?.dialAni ||
+                           agentData?.ani ||
+                           null;
+          
+          // Also check Desktop.dialer for default ANI
+          if (!this.outdialAni && Desktop.dialer?.defaultAni) {
+            this.outdialAni = Desktop.dialer.defaultAni;
+          }
+          
+          console.log('[CallbackWidget] Outdial ANI from agent profile:', this.outdialAni);
+        } catch (err) {
+          console.warn('[CallbackWidget] Could not get outdialAni:', err);
+        }
+      }
+
       console.log('[CallbackWidget] Final Agent ID:', this.agentId);
       console.log('[CallbackWidget] Agent State:', this.agentState);
+      console.log('[CallbackWidget] Outdial ANI:', this.outdialAni);
 
       // Try to create logger
       if (Desktop.logger) {
@@ -804,10 +830,15 @@ class CallbackWidget extends LitElement {
       // Get the outdial entry point - prefer widget property, then callback data
       const entryPointId = this.outdialEp || callback.entryPointId;
       console.log('[CallbackWidget] Outdial Entry Point:', entryPointId);
-      console.log('[CallbackWidget] Outdial ANI:', this.outdialAni);
+      console.log('[CallbackWidget] Outdial ANI (origin):', this.outdialAni);
 
       if (!entryPointId) {
         throw new Error('No Outdial Entry Point configured. Please set outdialEp in the desktop layout.');
+      }
+
+      // Origin must be a valid Outdial ANI configured in WxCC, NOT the destination number
+      if (!this.outdialAni) {
+        throw new Error('No Outdial ANI configured. Please set outdialAni in the desktop layout or configure it in the agent profile.');
       }
 
       // Determine the WxCC API region
@@ -824,13 +855,10 @@ class CallbackWidget extends LitElement {
             entryPointId: entryPointId,
             destination: callback.ani,
             direction: 'OUTBOUND',
-            origin: this.outdialAni || callback.ani,
+            origin: this.outdialAni,  // Must be a valid Outdial ANI, NOT the destination
             mediaType: 'telephony',
             outboundType: 'OUTDIAL',
-            attributes: {
-              callbackId: callback.id,
-              originalQueue: callback.queue
-            }
+            attributes: {},  // Keep attributes empty like the SDK example
           }
         };
         

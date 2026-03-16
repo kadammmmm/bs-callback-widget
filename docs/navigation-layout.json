@@ -6,7 +6,7 @@
     "3. Add this object to the navigation array",
     "4. Import the modified layout back to WxCC",
     "5. Assign to your teams",
-    "6. IMPORTANT: outdialEp must be set for the Dial button to work"
+    "6. IMPORTANT: outdialEp and outdialAni must be set for the Dial button to work"
   ],
 
   "_add_to_navigation_array": {
@@ -29,7 +29,8 @@
           "properties": {
             "backendUrl": "https://bs-callback-widget-production.up.railway.app/api",
             "accessToken": "$STORE.auth.accessToken",
-            "outdialEp": "$STORE.agent.outDialEp"
+            "outdialEp": "$STORE.agent.outDialEp",
+            "outdialAni": "$STORE.agent.outDialAni"
           }
         },
         "main-area": {
@@ -67,7 +68,8 @@
           "properties": {
             "backendUrl": "https://bs-callback-widget-production.up.railway.app/api",
             "accessToken": "$STORE.auth.accessToken",
-            "outdialEp": "$STORE.agent.outDialEp"
+            "outdialEp": "$STORE.agent.outDialEp",
+            "outdialAni": "$STORE.agent.outDialAni"
           }
         }
       },
