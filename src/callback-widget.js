@@ -837,9 +837,47 @@ class CallbackWidget extends LitElement {
       }
 
       // Origin must be a valid Outdial ANI configured in WxCC, NOT the destination number
-      if (!this.outdialAni) {
-        throw new Error('No Outdial ANI configured. Please set outdialAni in the desktop layout or configure it in the agent profile.');
+      // The outdialAni might be a MobX proxy or an array, so we need to extract the actual string
+      let originAni = this.outdialAni;
+      
+      // Handle MobX proxy objects
+      if (originAni && typeof originAni === 'object') {
+        console.log('[CallbackWidget] outdialAni is an object, extracting value...');
+        console.log('[CallbackWidget] outdialAni raw:', originAni);
+        
+        // If it's an array or has a data property that's an array
+        if (Array.isArray(originAni)) {
+          originAni = originAni[0];
+        } else if (originAni.data && Array.isArray(originAni.data)) {
+          originAni = originAni.data[0];
+        } else if (originAni.value) {
+          originAni = originAni.value;
+        } else if (originAni.ani) {
+          originAni = originAni.ani;
+        }
+        
+        // If still an object, try to get the first property value
+        if (originAni && typeof originAni === 'object') {
+          const keys = Object.keys(originAni);
+          if (keys.length > 0 && typeof originAni[keys[0]] === 'string') {
+            originAni = originAni[keys[0]];
+          }
+        }
+        
+        console.log('[CallbackWidget] Extracted originAni:', originAni);
       }
+      
+      // Ensure it's a string
+      if (originAni && typeof originAni !== 'string') {
+        console.warn('[CallbackWidget] originAni is not a string:', typeof originAni, originAni);
+        originAni = String(originAni);
+      }
+
+      if (!originAni || originAni === '[object Object]' || originAni === 'undefined') {
+        throw new Error('No Outdial ANI configured. Please configure an Outdial ANI in the agent profile in Control Hub.');
+      }
+
+      console.log('[CallbackWidget] Final origin ANI:', originAni);
 
       // Determine the WxCC API region
       const datacenter = this._getDatacenter();
@@ -855,7 +893,7 @@ class CallbackWidget extends LitElement {
             entryPointId: entryPointId,
             destination: callback.ani,
             direction: 'OUTBOUND',
-            origin: this.outdialAni,  // Must be a valid Outdial ANI, NOT the destination
+            origin: originAni,  // Use the extracted string ANI
             mediaType: 'telephony',
             outboundType: 'OUTDIAL',
             attributes: {},  // Keep attributes empty like the SDK example
