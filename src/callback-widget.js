@@ -17,7 +17,9 @@ class CallbackWidget extends LitElement {
     claimingId: { type: String },
     dialingId: { type: String },
     completingId: { type: String },
-    backendUrl: { type: String, attribute: 'backend-url' }
+    backendUrl: { type: String, attribute: 'backend-url' },
+    outdialEp: { type: String, attribute: 'outdial-ep' },
+    outdialAni: { type: String, attribute: 'outdial-ani' }
   };
 
   static styles = css`
@@ -593,6 +595,8 @@ class CallbackWidget extends LitElement {
     this.dialingId = null;
     this.completingId = null;
     this.backendUrl = 'https://bs-callback-widget-production.up.railway.app/api';
+    this.outdialEp = null;  // Outdial Entry Point ID - passed from layout
+    this.outdialAni = null; // Outdial ANI - passed from layout
     this._sdkLogger = null;
     this._pollInterval = null;
   }
@@ -786,32 +790,80 @@ class CallbackWidget extends LitElement {
     this.dialingId = callback.id;
 
     try {
-      // Use Desktop SDK dialer for outdial
-      if (Desktop.dialer) {
-        console.log('[CallbackWidget] Initiating outdial via Desktop.dialer');
-        const dialResult = await Desktop.dialer.startOutdial({
-          data: {
-            entryPointId: callback.entryPointId || '',
-            destination: callback.ani,
-            direction: 'OUTBOUND',
-            origin: callback.ani,
-            attributes: {
-              callbackId: callback.id,
-              originalQueue: callback.queue,
-              abandonedAt: callback.abandonedAt,
-              context: callback.context || ''
-            }
-          }
-        });
-
-        console.log('[CallbackWidget] Outdial result:', dialResult);
-        this._log('Outdial initiated', { callbackId: callback.id, result: dialResult });
-      } else {
-        console.warn('[CallbackWidget] Desktop.dialer not available');
-        this._log('Desktop SDK dialer not available - marking as dialed without initiating call', {}, 'warn');
+      console.log('[CallbackWidget] _dialCallback called');
+      console.log('[CallbackWidget] Callback data:', JSON.stringify(callback, null, 2));
+      
+      // Get access token from the agent service (same pattern as cherry picker)
+      const token = window.myAgentService?.webex?.token?.access_token;
+      console.log('[CallbackWidget] Access token available:', !!token);
+      
+      if (!token) {
+        throw new Error('No access token available for outdial');
       }
 
-      // Mark as dialed in backend regardless
+      // Get the outdial entry point - prefer widget property, then callback data
+      const entryPointId = this.outdialEp || callback.entryPointId;
+      console.log('[CallbackWidget] Outdial Entry Point:', entryPointId);
+      console.log('[CallbackWidget] Outdial ANI:', this.outdialAni);
+
+      if (!entryPointId) {
+        throw new Error('No Outdial Entry Point configured. Please set outdialEp in the desktop layout.');
+      }
+
+      // Determine the WxCC API region
+      const datacenter = this._getDatacenter();
+      const apiBase = `https://api.wxcc-${datacenter}.cisco.com`;
+      console.log('[CallbackWidget] API base:', apiBase);
+
+      // Try Desktop.dialer first if available
+      if (Desktop.dialer?.startOutdial) {
+        console.log('[CallbackWidget] Attempting Desktop.dialer.startOutdial');
+        
+        const outdialPayload = {
+          data: {
+            entryPointId: entryPointId,
+            destination: callback.ani,
+            direction: 'OUTBOUND',
+            origin: this.outdialAni || callback.ani,
+            attributes: {
+              callbackId: callback.id,
+              originalQueue: callback.queue
+            }
+          }
+        };
+        
+        console.log('[CallbackWidget] Outdial payload:', JSON.stringify(outdialPayload, null, 2));
+        
+        try {
+          const dialResult = await Desktop.dialer.startOutdial(outdialPayload);
+          console.log('[CallbackWidget] Desktop.dialer result:', dialResult);
+        } catch (dialerErr) {
+          console.warn('[CallbackWidget] Desktop.dialer failed:', dialerErr);
+          console.warn('[CallbackWidget] Error details:', JSON.stringify(dialerErr, null, 2));
+          
+          // Re-throw with more context
+          throw new Error(`Outdial failed: ${dialerErr.message || dialerErr.reason || 'Unknown error'}. Check Entry Point and ANI configuration.`);
+        }
+      } else {
+        console.warn('[CallbackWidget] Desktop.dialer.startOutdial not available');
+        console.log('[CallbackWidget] Desktop.dialer:', Desktop.dialer);
+        console.log('[CallbackWidget] Available Desktop methods:', Object.keys(Desktop));
+        
+        // Check for alternative dial methods
+        if (Desktop.dialer?.dial) {
+          console.log('[CallbackWidget] Trying Desktop.dialer.dial');
+          await Desktop.dialer.dial(callback.ani);
+        } else if (Desktop.actions?.outdial) {
+          console.log('[CallbackWidget] Trying Desktop.actions.outdial');
+          await Desktop.actions.outdial({ destination: callback.ani });
+        } else {
+          throw new Error('No outdial method available. Please dial manually: ' + callback.ani);
+        }
+      }
+
+      this._log('Outdial initiated', { callbackId: callback.id, ani: callback.ani });
+
+      // Mark as dialed in backend
       await fetch(`${this.backendUrl}/callbacks/${callback.id}/dial`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -824,16 +876,38 @@ class CallbackWidget extends LitElement {
       await this._fetchCallbacks();
 
     } catch (err) {
-      this._log('Dial failed', { error: err.message }, 'error');
+      console.error('[CallbackWidget] Dial error:', err);
+      console.error('[CallbackWidget] Error name:', err.name);
+      console.error('[CallbackWidget] Error message:', err.message);
+      console.error('[CallbackWidget] Error stack:', err.stack);
       
-      if (err.message?.includes('400') || err.message?.includes('403')) {
-        this.error = 'Outdial not permitted. Please dial manually.';
-      } else {
-        this.error = 'Dial failed: ' + err.message;
-      }
+      this._log('Dial failed', { error: err.message || String(err) }, 'error');
+      this.error = 'Dial failed: ' + (err.message || String(err));
     } finally {
       this.dialingId = null;
     }
+  }
+
+  _getDatacenter() {
+    // Try to get datacenter from various sources
+    try {
+      // From Desktop config
+      if (Desktop.config?.datacenter) {
+        return Desktop.config.datacenter.replace('prod', '');
+      }
+      // From window location
+      const hostname = window.location.hostname;
+      if (hostname.includes('wxcc-us1')) return 'us1';
+      if (hostname.includes('wxcc-eu1')) return 'eu1';
+      if (hostname.includes('wxcc-eu2')) return 'eu2';
+      if (hostname.includes('wxcc-anz1')) return 'anz1';
+      if (hostname.includes('wxcc-ca1')) return 'ca1';
+      if (hostname.includes('wxcc-jp1')) return 'jp1';
+      if (hostname.includes('wxcc-sg1')) return 'sg1';
+    } catch (e) {
+      console.warn('[CallbackWidget] Could not determine datacenter:', e);
+    }
+    return 'us1'; // Default
   }
 
   async _completeCallback(callback, outcome) {
