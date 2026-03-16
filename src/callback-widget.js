@@ -600,7 +600,7 @@ class CallbackWidget extends LitElement {
     this.claimingId = null;
     this.dialingId = null;
     this.completingId = null;
-    this.backendUrl = 'https://bs-callback-widget.onrender.com/api';
+    this.backendUrl = 'https://bs-callback-widget-production.up.railway.app/api';
     this._sdkLogger = null;
     this._pollInterval = null;
     this._desktop = null;
