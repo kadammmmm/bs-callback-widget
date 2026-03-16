@@ -1,13 +1,5 @@
 import { LitElement, html, css } from 'lit';
-
-// Desktop SDK is provided globally by Agent Desktop runtime
-// We access it via window.wxcc.Desktop or window.Desktop
-const getDesktop = () => {
-  if (typeof window !== 'undefined') {
-    return window.wxcc?.Desktop || window.Desktop || null;
-  }
-  return null;
-};
+import { Desktop } from '@wxcc-desktop/sdk';
 
 /**
  * Abandoned Call Callback Widget for Webex Contact Center
@@ -603,7 +595,6 @@ class CallbackWidget extends LitElement {
     this.backendUrl = 'https://bs-callback-widget-production.up.railway.app/api';
     this._sdkLogger = null;
     this._pollInterval = null;
-    this._desktop = null;
   }
 
   connectedCallback() {
@@ -619,43 +610,68 @@ class CallbackWidget extends LitElement {
 
   async _initSDK() {
     try {
-      this._desktop = getDesktop();
+      console.log('[CallbackWidget] _initSDK starting...');
       
-      if (!this._desktop) {
-        this._log('Desktop SDK not available - running outside Agent Desktop', {}, 'warn');
-        // Still fetch callbacks even without SDK
-        await this._fetchCallbacks();
-        return;
+      // Initialize config (matching working widget pattern)
+      Desktop.config.init();
+      console.log('[CallbackWidget] Config initialized');
+
+      // Store reference to agent service (matching working widget pattern)
+      window.myAgentService = Desktop.agentContact?.SERVICE;
+      console.log('[CallbackWidget] myAgentService:', window.myAgentService);
+
+      // Get agent details using the working pattern
+      if (Desktop.agentContact?.SERVICE?.webex) {
+        try {
+          const agentDetails = await Desktop.agentContact.SERVICE.webex.fetchPersonData("me");
+          console.log('[CallbackWidget] Agent details:', agentDetails);
+          this.agentId = agentDetails?.id || agentDetails?.emails?.[0] || null;
+          console.log('[CallbackWidget] Agent ID from fetchPersonData:', this.agentId);
+        } catch (err) {
+          console.warn('[CallbackWidget] fetchPersonData failed:', err);
+        }
       }
 
-      this._sdkLogger = this._desktop.logger.createLogger('bs-callback-widget');
-      
-      await this._desktop.config.init({
-        widgetName: 'bs-callback-widget',
-        widgetProvider: 'bucher-suter'
-      });
+      // Fallback: try agentStateInfo if agentContact didn't work
+      if (!this.agentId && Desktop.agentStateInfo?.latestData) {
+        const agentInfo = Desktop.agentStateInfo.latestData;
+        console.log('[CallbackWidget] agentStateInfo latestData:', agentInfo);
+        this.agentId = agentInfo?.agentId || agentInfo?.id || agentInfo?.agentSessionId || null;
+        this.agentState = agentInfo?.subStatus || agentInfo?.status || 'Available';
+      }
 
-      const agentInfo = this._desktop.agentStateInfo.latestData;
-      this.agentId = agentInfo?.agentId || agentInfo?.id || null;
-      this.agentState = agentInfo?.subStatus || agentInfo?.status || 'Available';
+      console.log('[CallbackWidget] Final Agent ID:', this.agentId);
+      console.log('[CallbackWidget] Agent State:', this.agentState);
 
-      this._log('SDK initialized', { agentId: this.agentId, state: this.agentState });
-
-      this._desktop.agentStateInfo.addEventListener('updated', (event) => {
-        if (Array.isArray(event)) {
-          const stateChange = event.find(item => item.name === 'subStatus');
-          if (stateChange) {
-            this.agentState = stateChange.value;
-            this._log('Agent state changed', { state: this.agentState });
-          }
+      // Try to create logger
+      if (Desktop.logger) {
+        try {
+          this._sdkLogger = Desktop.logger.createLogger('bs-callback-widget');
+        } catch (e) {
+          console.warn('[CallbackWidget] Logger creation failed:', e);
         }
-      });
+      }
+
+      // Listen for state changes
+      if (Desktop.agentStateInfo?.addEventListener) {
+        Desktop.agentStateInfo.addEventListener('updated', (event) => {
+          console.log('[CallbackWidget] Agent state update event:', event);
+          if (Array.isArray(event)) {
+            const stateChange = event.find(item => item.name === 'subStatus');
+            if (stateChange) {
+              this.agentState = stateChange.value;
+            }
+          }
+        });
+      }
 
       await this._fetchCallbacks();
 
     } catch (err) {
-      this._log('SDK init failed', err, 'error');
-      this.error = 'Failed to initialize SDK';
+      console.error('[CallbackWidget] SDK init failed:', err);
+      this.error = 'Failed to initialize SDK: ' + err.message;
+      // Still try to fetch callbacks
+      await this._fetchCallbacks();
     }
   }
 
@@ -770,9 +786,10 @@ class CallbackWidget extends LitElement {
     this.dialingId = callback.id;
 
     try {
-      // Check if Desktop SDK is available for outdial
-      if (this._desktop?.dialer) {
-        const dialResult = await this._desktop.dialer.startOutdial({
+      // Use Desktop SDK dialer for outdial
+      if (Desktop.dialer) {
+        console.log('[CallbackWidget] Initiating outdial via Desktop.dialer');
+        const dialResult = await Desktop.dialer.startOutdial({
           data: {
             entryPointId: callback.entryPointId || '',
             destination: callback.ani,
@@ -787,8 +804,10 @@ class CallbackWidget extends LitElement {
           }
         });
 
+        console.log('[CallbackWidget] Outdial result:', dialResult);
         this._log('Outdial initiated', { callbackId: callback.id, result: dialResult });
       } else {
+        console.warn('[CallbackWidget] Desktop.dialer not available');
         this._log('Desktop SDK dialer not available - marking as dialed without initiating call', {}, 'warn');
       }
 

@@ -14,11 +14,21 @@ This guide walks you through every step from downloading the code to seeing the 
 6. [Push Code to GitHub](#6-push-code-to-github)
 7. [Enable GitHub Pages (Widget Hosting)](#7-enable-github-pages-widget-hosting)
 8. [Deploy Backend to Render](#8-deploy-backend-to-render)
-9. [Configure Widget with Backend URL](#9-configure-widget-with-backend-url)
-10. [Configure WxCC Flow for Abandon Detection](#10-configure-wxcc-flow-for-abandon-detection)
-11. [Update WxCC Desktop Layout](#11-update-wxcc-desktop-layout)
-12. [Test the Complete Solution](#12-test-the-complete-solution)
-13. [Troubleshooting](#13-troubleshooting)
+9. [Configure WxCC Flow for Abandon Detection](#9-configure-wxcc-flow-for-abandon-detection)
+10. [Update WxCC Desktop Layout](#10-update-wxcc-desktop-layout)
+11. [Test the Complete Solution](#11-test-the-complete-solution)
+12. [Troubleshooting](#12-troubleshooting)
+
+---
+
+## Quick Reference - Your URLs
+
+| Component | URL |
+|-----------|-----|
+| Widget Script | `https://kadammmmm.github.io/bs-callback-widget/index.js` |
+| Backend API | `https://bs-callback-widget-production.up.railway.app/api` |
+| Backend Health | `https://bs-callback-widget-production.up.railway.app/health` |
+| GitHub Repo | `https://github.com/kadammmmm/bs-callback-widget` |
 
 ---
 
@@ -111,9 +121,11 @@ wxcc-callback-widget/
 │   ├── server.js             # Express.js API server
 │   └── package.json          # Backend dependencies
 ├── docs/
-│   ├── DEPLOYMENT.md         # Deployment reference
-│   ├── FLOW-CONFIGURATION.md # WxCC Flow setup
-│   └── desktop-layout-sample.json  # Layout JSON examples
+│   ├── COMPLETE-SETUP-GUIDE.md   # This file
+│   ├── DEPLOYMENT.md             # Deployment reference
+│   ├── FLOW-CONFIGURATION.md     # WxCC Flow setup
+│   ├── navigation-layout.json    # Desktop Layout JSON
+│   └── desktop-layout-sample.json
 ├── package.json              # Widget dependencies
 ├── rollup.config.js          # Build configuration (IIFE format)
 ├── .gitignore                # Files to exclude from Git
@@ -193,7 +205,7 @@ npm run build
 
 You should see output like:
 ```
-src/callback-widget.js → dist/callback-widget.js...
+src/callback-widget.js -> dist/callback-widget.js...
 created dist/callback-widget.js in 1.2s
 ```
 
@@ -215,7 +227,7 @@ Check the `dist/` folder now exists with `callback-widget.js` inside.
 
 3. Click **"Create repository"**
 
-4. You'll see a page with setup instructions. Keep this page open - you'll need the repository URL.
+4. You'll see a page with setup instructions. Keep this page open.
 
 Your repo URL will be: `https://github.com/kadammmmm/bs-callback-widget.git`
 
@@ -247,7 +259,7 @@ git config --global user.email "your.email@example.com"
 ### Step 6.3: Add Remote Repository
 
 ```bash
-# Add GitHub as remote (use YOUR repository URL)
+# Add GitHub as remote
 git remote add origin https://github.com/kadammmmm/bs-callback-widget.git
 
 # Verify remote was added
@@ -279,7 +291,7 @@ git status
 # Commit
 git commit -m "Initial commit: Callback widget and backend"
 
-# Push to GitHub (first time requires setting upstream)
+# Push to GitHub
 git branch -M main
 git push -u origin main
 ```
@@ -294,7 +306,7 @@ git push -u origin main
 
 1. Go to `https://github.com/kadammmmm/bs-callback-widget`
 2. You should see all your files
-3. Verify `index.js` is in the root (this is what GitHub Pages will serve)
+3. Verify `index.js` is in the root
 
 ---
 
@@ -327,14 +339,12 @@ curl -I https://kadammmmm.github.io/bs-callback-widget/index.js
 
 Or open in browser: `https://kadammmmm.github.io/bs-callback-widget/index.js`
 
-You should see minified JavaScript code (lots of text on one line).
+You should see minified JavaScript code.
 
 **Your widget URL is:**
 ```
 https://kadammmmm.github.io/bs-callback-widget/index.js
 ```
-
-Save this - you'll need it for the Desktop Layout.
 
 ---
 
@@ -344,7 +354,7 @@ Save this - you'll need it for the Desktop Layout.
 
 1. Go to https://render.com/
 2. Click "Get Started for Free"
-3. **Sign up with GitHub** (recommended - makes deployment easier)
+3. **Sign up with GitHub** (recommended)
 4. Authorize Render to access your GitHub
 
 ### Step 8.2: Create a New Web Service
@@ -354,9 +364,8 @@ Save this - you'll need it for the Desktop Layout.
 
 ### Step 8.3: Connect Your Repository
 
-1. If you signed up with GitHub, you'll see your repositories
-2. Find `bs-callback-widget` and click **"Connect"**
-3. If you don't see it, click "Configure account" to grant access
+1. Find `bs-callback-widget` and click **"Connect"**
+2. If you don't see it, click "Configure account" to grant access
 
 ### Step 8.4: Configure the Service
 
@@ -364,8 +373,8 @@ Fill in these settings:
 
 | Setting | Value |
 |---------|-------|
-| **Name** | `bs-callback-backend` |
-| **Region** | Choose closest to your WxCC region (e.g., Oregon for US) |
+| **Name** | `bs-callback-widget` |
+| **Region** | Choose closest to your WxCC region |
 | **Branch** | `main` |
 | **Root Directory** | `backend` |
 | **Runtime** | `Node` |
@@ -381,92 +390,42 @@ Fill in these settings:
 ### Step 8.6: Deploy
 
 1. Click **"Create Web Service"**
-2. Render will:
-   - Clone your repository
-   - Run `npm install` in the `backend` folder
-   - Start the server
-3. Wait 2-3 minutes for deployment
-
-### Step 8.7: Get Your Backend URL
-
-Once deployed, you'll see:
-- Status: "Live"
-- URL: `https://bs-callback-backend.onrender.com`
+2. Wait 2-3 minutes for deployment
+3. Once deployed, you'll see status: "Live"
 
 **Your backend URL is:**
 ```
-https://bs-callback-backend.onrender.com
+https://bs-callback-widget-production.up.railway.app
 ```
 
-### Step 8.8: Test the Backend
+### Step 8.7: Test the Backend
 
 ```bash
 # Health check
-curl https://bs-callback-backend.onrender.com/health
+curl https://bs-callback-widget-production.up.railway.app/health
 
 # Create test callback
-curl -X POST https://bs-callback-backend.onrender.com/api/abandon \
+curl -X POST https://bs-callback-widget-production.up.railway.app/api/abandon \
   -H "Content-Type: application/json" \
   -d '{"ani":"+13305551234","queue":"Sales","context":"Test from curl"}'
 
 # List callbacks
-curl https://bs-callback-backend.onrender.com/api/callbacks
+curl https://bs-callback-widget-production.up.railway.app/api/callbacks
 ```
-
-You should get JSON responses.
 
 ---
 
-## 9. Configure Widget with Backend URL
-
-Now update the widget to point to your Render backend.
-
-### Step 9.1: Edit the Widget Source
-
-In VS Code, open `src/callback-widget.js`
-
-Find this line (around line 480):
-```javascript
-this.backendUrl = 'https://your-backend.onrender.com/api';
-```
-
-Change it to your actual backend URL:
-```javascript
-this.backendUrl = 'https://bs-callback-backend.onrender.com/api';
-```
-
-### Step 9.2: Rebuild and Redeploy
-
-```bash
-# Rebuild
-npm run build
-
-# Copy to root
-cp dist/callback-widget.js index.js
-
-# Commit and push
-git add .
-git commit -m "Configure backend URL"
-git push
-```
-
-### Step 9.3: Wait for GitHub Pages
-
-GitHub Pages will automatically redeploy. Wait 1-2 minutes.
-
----
-
-## 10. Configure WxCC Flow for Abandon Detection
+## 9. Configure WxCC Flow for Abandon Detection
 
 This step configures your WxCC Flow to detect abandoned calls and send them to the backend.
 
-### Step 10.1: Open Flow Designer
+### Step 9.1: Open Flow Designer
 
 1. Log into Webex Control Hub
 2. Go to Contact Center > Flows
-3. Open the flow you want to add abandon detection to (or create a new one)
+3. Open the flow you want to add abandon detection to
 
-### Step 10.2: Add Flow Variables
+### Step 9.2: Add Flow Variables
 
 Create these variables in your flow:
 
@@ -475,17 +434,15 @@ Create these variables in your flow:
 | `Abandoned` | Boolean | `false` |
 | `CollectedData` | String | `""` |
 
-### Step 10.3: Add HTTP Request Node
+### Step 9.3: Add HTTP Request Node
 
-1. In Flow Designer, add an **HTTP Request** node
-2. Connect it to fire when the call disconnects before reaching an agent
-
-Configure the HTTP Request node:
+Add an **HTTP Request** node that fires when the call disconnects before reaching an agent.
 
 **Request Tab:**
+
 | Setting | Value |
 |---------|-------|
-| Request URL | `https://bs-callback-backend.onrender.com/api/abandon` |
+| Request URL | `https://bs-callback-widget-production.up.railway.app/api/abandon` |
 | Method | `POST` |
 | Content Type | `Application/JSON` |
 
@@ -501,36 +458,30 @@ Configure the HTTP Request node:
 }
 ```
 
-### Step 10.4: Add Disconnect Event Handler
+### Step 9.4: Flow Pattern
 
-The HTTP Request should fire when:
-1. Customer disconnects during IVR
-2. Customer disconnects while in queue
-3. Customer disconnects before agent answers
-
-Typical flow pattern:
 ```
 Entry Point
-    ↓
+    |
 IVR Menu (collect data, update CollectedData variable)
-    ↓
+    |
 Queue Contact
-    ↓
-    ├── On Agent Connect → Normal call
-    │
-    └── On Disconnect (before agent) → HTTP Request to /api/abandon
+    |
+    +-- On Agent Connect --> Normal call
+    |
+    +-- On Disconnect (before agent) --> HTTP Request to /api/abandon
 ```
 
-### Step 10.5: Publish the Flow
+### Step 9.5: Publish the Flow
 
 1. Validate the flow (check for errors)
 2. Publish to your environment
 
 ---
 
-## 11. Update WxCC Desktop Layout
+## 10. Update WxCC Desktop Layout
 
-### Step 11.1: Export Current Layout
+### Step 10.1: Export Current Layout
 
 1. Log into Webex Control Hub
 2. Go to Contact Center > Desktop Layouts
@@ -538,77 +489,113 @@ Queue Contact
 4. Click the layout name to open it
 5. Click **Export** to download the JSON file
 
-### Step 11.2: Edit the Layout JSON
+### Step 10.2: Edit the Layout JSON
 
 Open the downloaded JSON file in VS Code.
 
-Find the `panel` section with `md-tabs`. It looks something like this:
-
-```json
-"panel": {
-  "comp": "md-tabs",
-  "attributes": {
-    "class": "widget-tabs"
-  },
-  "children": [
-    // Existing tabs here...
-  ]
-}
-```
-
-### Step 11.3: Add the Callback Widget Tab
-
-Add these two objects to the `children` array:
+Find the `navigation` array in your layout. Add this object to the array:
 
 ```json
 {
-  "comp": "md-tab",
-  "attributes": {
-    "slot": "tab",
-    "aria-label": "Callbacks"
+  "nav": {
+    "label": "Callbacks",
+    "icon": "call-log",
+    "iconType": "momentum",
+    "navigateTo": "callbacks",
+    "align": "top"
   },
-  "children": [
-    {
-      "comp": "md-icon",
-      "attributes": {
-        "name": "icon-call-log_16"
+  "page": {
+    "id": "callbacks",
+    "widgets": {
+      "callback-area": {
+        "comp": "bs-callback-widget",
+        "script": "https://kadammmmm.github.io/bs-callback-widget/index.js",
+        "attributes": {
+          "darkmode": "$STORE.app.darkMode"
+        },
+        "properties": {
+          "backendUrl": "https://bs-callback-widget-production.up.railway.app/api",
+          "accessToken": "$STORE.auth.accessToken"
+        }
+      },
+      "main-area": {
+        "comp": "agentx-wc-interaction-control"
       }
     },
-    {
-      "comp": "span",
-      "textContent": "Callbacks"
-    }
-  ]
-},
-{
-  "comp": "md-tab-panel",
-  "attributes": {
-    "slot": "panel",
-    "class": "widget-pane"
-  },
-  "children": [
-    {
-      "comp": "bs-callback-widget",
-      "script": "https://kadammmmm.github.io/bs-callback-widget/index.js",
-      "properties": {
-        "backendUrl": "https://bs-callback-backend.onrender.com/api"
+    "layout": {
+      "areas": [["callback-area", "main-area"]],
+      "size": {
+        "cols": ["35%", "65%"],
+        "rows": [1]
       }
     }
-  ]
+  }
 }
 ```
 
-**Important:** Make sure to:
-- Replace `kadammmmm` with your GitHub username
-- Replace `bs-callback-backend` with your Render service name
-- Add commas between array elements as needed
+### Step 10.3: Layout Visual
 
-### Step 11.4: Validate the JSON
+```
++------------------------------------------------------------------+
+| [Nav]  +---------------------+-----------------------------------+
+|        |                     |                                   |
+| Home   |  Callback Widget    |   Interaction Control             |
+|        |  (35%)              |   (65%)                           |
+| ------ |                     |                                   |
+|        |  +---------------+  |                                   |
+|  []    |  | (330) 555-1234|  |                                   |
+|Callbacks| | Sales - 5m ago|  |                                   |
+|        |  | [Claim]       |  |                                   |
+|        |  +---------------+  |                                   |
+|        |                     |                                   |
++--------+---------------------+-----------------------------------+
+```
+
+### Step 10.4: Alternative - Full Width Layout
+
+If you want the callback widget to take the full page:
+
+```json
+{
+  "nav": {
+    "label": "Callbacks",
+    "icon": "call-log",
+    "iconType": "momentum",
+    "navigateTo": "callbacks",
+    "align": "top"
+  },
+  "page": {
+    "id": "callbacks",
+    "widgets": {
+      "callback-area": {
+        "comp": "bs-callback-widget",
+        "script": "https://kadammmmm.github.io/bs-callback-widget/index.js",
+        "attributes": {
+          "darkmode": "$STORE.app.darkMode"
+        },
+        "properties": {
+          "backendUrl": "https://bs-callback-widget-production.up.railway.app/api",
+          "accessToken": "$STORE.auth.accessToken"
+        }
+      }
+    },
+    "layout": {
+      "areas": [["callback-area"]],
+      "size": {
+        "cols": [1],
+        "rows": [1]
+      }
+    }
+  }
+}
+```
+
+### Step 10.5: Validate the JSON
 
 1. In VS Code, the JSON should have no red underlines
 2. Or use https://jsonlint.com/ to validate
 
-### Step 11.5: Import the Updated Layout
+### Step 10.6: Import the Updated Layout
 
 1. Go back to Control Hub > Desktop Layouts
 2. Click **Import**
@@ -616,7 +603,7 @@ Add these two objects to the `children` array:
 4. Give it a name (e.g., "Layout with Callbacks")
 5. Click **Import**
 
-### Step 11.6: Assign Layout to Team
+### Step 10.7: Assign Layout to Team
 
 1. Go to Contact Center > Teams
 2. Select the team that should see the callback widget
@@ -626,69 +613,64 @@ Add these two objects to the `children` array:
 
 ---
 
-## 12. Test the Complete Solution
+## 11. Test the Complete Solution
 
-### Step 12.1: Create Test Callbacks
+### Step 11.1: Create Test Callbacks
 
 ```bash
 # Create a few test callbacks
-curl -X POST https://bs-callback-backend.onrender.com/api/abandon \
+curl -X POST https://bs-callback-widget-production.up.railway.app/api/abandon \
   -H "Content-Type: application/json" \
   -d '{"ani":"+13305551111","queue":"Sales","context":"Interested in pricing"}'
 
-curl -X POST https://bs-callback-backend.onrender.com/api/abandon \
+curl -X POST https://bs-callback-widget-production.up.railway.app/api/abandon \
   -H "Content-Type: application/json" \
   -d '{"ani":"+13305552222","queue":"Support","context":"Password reset issue"}'
 
-curl -X POST https://bs-callback-backend.onrender.com/api/abandon \
+curl -X POST https://bs-callback-widget-production.up.railway.app/api/abandon \
   -H "Content-Type: application/json" \
   -d '{"ani":"+13305553333","queue":"Billing","context":"Invoice question"}'
 ```
 
-### Step 12.2: Log Into Agent Desktop
+### Step 11.2: Log Into Agent Desktop
 
 1. Go to your WxCC Agent Desktop URL
 2. Log in as an agent assigned to the team with the new layout
-3. Look for the **"Callbacks"** tab in the panel area
+3. Click the **"Callbacks"** icon in the left navigation
 
-### Step 12.3: Verify Widget Loads
+### Step 11.3: Verify Widget Loads
 
 You should see:
 - Header with "Abandoned Callbacks" title
 - Stats bar showing Pending/Claimed/Dialed counts
 - List of callback cards with the test data
 
-### Step 12.4: Test the Workflow
+### Step 11.4: Test the Workflow
 
 1. **Claim** a callback (click the Claim button)
 2. **Dial** the callback (click the Dial button)
-   - Note: This may fail if outdial isn't configured - that's OK
+   - Note: Outdial may fail if not configured - that's OK
 3. **Complete** with an outcome (Connected, Voicemail, etc.)
 4. Verify the callback disappears from the list
 
-### Step 12.5: Check Browser Console for Errors
+### Step 11.5: Check Browser Console for Errors
 
 1. Right-click in Agent Desktop > Inspect
 2. Go to Console tab
 3. Look for any red errors
-4. Common issues:
-   - CORS errors: Backend needs CORS update
-   - 404 errors: Check URLs are correct
-   - Script errors: Check widget build
 
 ---
 
-## 13. Troubleshooting
+## 12. Troubleshooting
 
 ### Widget Not Loading
 
-**Symptom:** Callbacks tab shows blank or error
+**Symptom:** Callbacks page shows blank or error
 
 **Check 1: Script Loading**
-Open browser console and run:
 ```javascript
 fetch('https://kadammmmm.github.io/bs-callback-widget/index.js')
-  .then(r => r.ok ? console.log('✅ Script loads') : console.log('❌ Script not found'))
+  .then(r => r.ok ? console.log('Script loads') : console.log('Not found'))
 ```
 
 **Check 2: Custom Element Registered**
@@ -701,12 +683,10 @@ console.log('Element defined:', !!customElements.get('bs-callback-widget'))
 fetch('https://kadammmmm.github.io/bs-callback-widget/index.js')
   .then(r => r.text())
   .then(code => {
-    try { new Function(code); console.log('✅ No syntax errors'); }
-    catch(e) { console.log('❌ Syntax error:', e.message); }
+    try { new Function(code); console.log('No syntax errors'); }
+    catch(e) { console.log('Syntax error:', e.message); }
   })
 ```
-
-If you see "Unexpected token 'export'", the build format is wrong. Verify `rollup.config.js` has `format: 'iife'`.
 
 ### Backend Not Responding
 
@@ -714,7 +694,7 @@ If you see "Unexpected token 'export'", the build format is wrong. Verify `rollu
 
 **Check 1: Backend Health**
 ```bash
-curl https://bs-callback-backend.onrender.com/health
+curl https://bs-callback-widget-production.up.railway.app/health
 ```
 
 **Check 2: Render Dashboard**
@@ -735,8 +715,7 @@ app.use(cors({
   origin: [
     'https://desktop.wxcc-us1.cisco.com',
     'https://desktop.wxcc-eu1.cisco.com',
-    'https://desktop.wxcc-anz1.cisco.com',
-    // Add your specific WxCC domain
+    'https://desktop.wxcc-anz1.cisco.com'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'X-Agent-Id']
@@ -744,15 +723,6 @@ app.use(cors({
 ```
 
 Then commit and push - Render will auto-redeploy.
-
-### Flow Not Sending Abandons
-
-**Symptom:** No callbacks appearing even after test calls
-
-**Check 1:** Flow is published and active
-**Check 2:** HTTP Request node is correctly connected in disconnect path
-**Check 3:** Check Flow Analytics for HTTP Request failures
-**Check 4:** Test the backend directly with curl to rule out backend issues
 
 ### Desktop Layout Not Updating
 
@@ -766,15 +736,6 @@ Then commit and push - Render will auto-redeploy.
 
 ---
 
-## Quick Reference
-
-| Component | URL |
-|-----------|-----|
-| Widget Script | `https://kadammmmm.github.io/bs-callback-widget/index.js` |
-| Backend API | `https://bs-callback-backend.onrender.com/api` |
-| Backend Health | `https://bs-callback-backend.onrender.com/health` |
-| GitHub Repo | `https://github.com/kadammmmm/bs-callback-widget` |
-
 ## Common Commands
 
 ```bash
@@ -787,8 +748,13 @@ npm run build && cp dist/callback-widget.js index.js && git add . && git commit 
 # Run backend locally
 cd backend && npm run dev
 
-# View Render logs
-# Go to render.com > Your service > Logs
+# Test backend health
+curl https://bs-callback-widget-production.up.railway.app/health
+
+# Create test callback
+curl -X POST https://bs-callback-widget-production.up.railway.app/api/abandon \
+  -H "Content-Type: application/json" \
+  -d '{"ani":"+13305551234","queue":"Sales","context":"Test"}'
 ```
 
 ---
@@ -801,5 +767,3 @@ Once everything is working:
 2. **Authentication**: Add API key validation for Flow requests
 3. **Monitoring**: Set up logging and alerting
 4. **Custom Branding**: Update colors/styling to match your brand
-
-Questions? Check the `docs/` folder for additional reference material.

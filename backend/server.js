@@ -5,6 +5,7 @@
  * - Storing abandoned call records (from WxCC Flow HTTP Request)
  * - Retrieving callback list for agents
  * - Claim/release/dial status management
+ * - Serving the widget JS file (no GitHub Pages needed)
  * 
  * Deploy to: Render, Railway, Fly.io, or any Node.js host
  */
@@ -12,6 +13,11 @@
 import express from 'express';
 import cors from 'cors';
 import { randomUUID } from 'crypto';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -29,15 +35,34 @@ app.use(cors({
 
 app.use(express.json());
 
-// Request logging
+// Serve the widget JS file from /widget endpoint
+// This eliminates the need for GitHub Pages
+app.use('/widget', express.static(join(__dirname, '../dist')));
+
+// Request logging - detailed for debugging
 app.use((req, res, next) => {
+  console.log('='.repeat(50));
   console.log(`${new Date().toISOString()} ${req.method} ${req.path}`);
+  console.log('Headers:', JSON.stringify(req.headers, null, 2));
+  if (req.body && Object.keys(req.body).length > 0) {
+    console.log('Body:', JSON.stringify(req.body, null, 2));
+  }
+  console.log('='.repeat(50));
   next();
 });
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+  res.json({ status: 'healthy', timestamp: new Date().toISOString(), callbackCount: callbacks.length });
+});
+
+// Debug endpoint - see all callbacks
+app.get('/api/debug', (req, res) => {
+  res.json({ 
+    callbackCount: callbacks.length,
+    callbacks: callbacks,
+    timestamp: new Date().toISOString()
+  });
 });
 
 // ============================================
@@ -46,6 +71,9 @@ app.get('/health', (req, res) => {
 // Called by WxCC Flow via HTTP Request node when Abandoned=true
 
 app.post('/api/abandon', (req, res) => {
+  console.log('>>> ABANDON ENDPOINT HIT <<<');
+  console.log('Raw body:', req.body);
+  
   try {
     const {
       ani,
@@ -55,10 +83,20 @@ app.post('/api/abandon', (req, res) => {
       context,
       ivrData,
       sessionId,
-      dnis
+      dnis,
+      // Additional fields from your flow
+      callId,
+      callerName,
+      queueId,
+      companyName,
+      vertical
     } = req.body;
 
+    console.log('Parsed ANI:', ani);
+    console.log('Parsed Queue:', queue);
+
     if (!ani) {
+      console.log('ERROR: ANI is missing!');
       return res.status(400).json({ error: 'ANI is required' });
     }
 
@@ -87,6 +125,11 @@ app.post('/api/abandon', (req, res) => {
       context: context || ivrData || null,
       sessionId: sessionId || null,
       dnis: dnis || null,
+      callId: callId || null,
+      callerName: callerName || null,
+      queueId: queueId || null,
+      companyName: companyName || null,
+      vertical: vertical || null,
       status: 'pending',
       claimedBy: null,
       claimedAt: null,
@@ -97,6 +140,7 @@ app.post('/api/abandon', (req, res) => {
 
     callbacks.push(callback);
     console.log(`New abandoned call recorded: ${ani} from queue ${queue}`);
+    console.log('Callback object:', JSON.stringify(callback, null, 2));
 
     res.status(201).json({ 
       message: 'Callback created', 

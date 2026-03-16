@@ -1,0 +1,90 @@
+{
+  "_comment": "Navigation Page Layout for Abandoned Call Callback Widget",
+  "_instructions": [
+    "1. Export your current desktop layout from WxCC Admin Portal",
+    "2. Find the 'navigation' array in your layout JSON",
+    "3. Add this object to the navigation array",
+    "4. Import the modified layout back to WxCC",
+    "5. Assign to your teams"
+  ],
+
+  "_add_to_navigation_array": {
+    "nav": {
+      "label": "Callbacks",
+      "icon": "call-log",
+      "iconType": "momentum",
+      "navigateTo": "callbacks",
+      "align": "top"
+    },
+    "page": {
+      "id": "callbacks",
+      "widgets": {
+        "callback-area": {
+          "comp": "bs-callback-widget",
+          "script": "https://kadammmmm.github.io/bs-callback-widget/index.js",
+          "attributes": {
+            "darkmode": "$STORE.app.darkMode"
+          },
+          "properties": {
+            "backendUrl": "https://bs-callback-widget-production.up.railway.app/api",
+            "accessToken": "$STORE.auth.accessToken"
+          }
+        },
+        "main-area": {
+          "comp": "agentx-wc-interaction-control"
+        }
+      },
+      "layout": {
+        "areas": [["callback-area", "main-area"]],
+        "size": {
+          "cols": ["35%", "65%"],
+          "rows": [1]
+        }
+      }
+    }
+  },
+
+  "_alternative_full_width": {
+    "_comment": "Use this if you want callbacks to take the full page width",
+    "nav": {
+      "label": "Callbacks",
+      "icon": "call-log",
+      "iconType": "momentum",
+      "navigateTo": "callbacks",
+      "align": "top"
+    },
+    "page": {
+      "id": "callbacks",
+      "widgets": {
+        "callback-area": {
+          "comp": "bs-callback-widget",
+          "script": "https://kadammmmm.github.io/bs-callback-widget/index.js",
+          "attributes": {
+            "darkmode": "$STORE.app.darkMode"
+          },
+          "properties": {
+            "backendUrl": "https://bs-callback-widget-production.up.railway.app/api",
+            "accessToken": "$STORE.auth.accessToken"
+          }
+        }
+      },
+      "layout": {
+        "areas": [["callback-area"]],
+        "size": {
+          "cols": [1],
+          "rows": [1]
+        }
+      }
+    }
+  },
+
+  "_icon_options": [
+    "call-log",
+    "call-voicemail", 
+    "callback",
+    "handset",
+    "phone-reply",
+    "recents",
+    "speed-dial"
+  ]
+}

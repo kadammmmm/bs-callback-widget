@@ -3,184 +3,149 @@
 This document describes the flow configuration required to capture abandoned calls
 and send them to the callback backend service.
 
-## Flow Variables Required
+## HTTP Request Node Configuration
 
-Create these flow variables in your WxCC Flow Designer:
+### Request Settings
 
-| Variable Name | Type    | Default | Description                           |
-|---------------|---------|---------|---------------------------------------|
-| Abandoned     | Boolean | false   | Set to true when customer disconnects |
-| AbandonPoint  | String  | ""      | Where in flow abandonment occurred    |
-| CollectedData | String  | ""      | Any IVR data collected before abandon |
+| Setting | Value |
+|---------|-------|
+| **Request URL** | `https://bs-callback-widget-production.up.railway.app/api/abandon` |
+| **Method** | `POST` |
+| **Content Type** | `Application/JSON` |
+| **Timeout** | `5` seconds |
 
-## Flow Structure
+### Request Body
 
-### 1. Entry Point Configuration
-
-```
-Entry Point
-    │
-    ├── Set Variable: Abandoned = false
-    │
-    ├── Play Welcome Message
-    │
-    ├── IVR Menu / Data Collection
-    │   └── On each step, update CollectedData variable
-    │
-    ├── Queue Contact
-    │   └── Set AbandonPoint = "Queue"
-    │
-    └── Connect to Agent
-```
-
-### 2. Disconnect Event Handler
-
-In your flow, add an Event handler for "OnDisconnect" or use the
-Disconnect node to capture when the customer hangs up:
-
-```
-OnDisconnect Event
-    │
-    ├── Condition: Is agent connected?
-    │   │
-    │   ├── YES: Normal call end (do nothing)
-    │   │
-    │   └── NO: Customer abandoned
-    │       │
-    │       ├── Set Variable: Abandoned = true
-    │       │
-    │       └── HTTP Request Node
-    │           URL: https://your-backend.onrender.com/api/abandon
-    │           Method: POST
-    │           Body (JSON):
-    │           {
-    │               "ani": "{{NewPhoneContact.ANI}}",
-    │               "queue": "{{QueueName}}",
-    │               "abandonedAt": "{{CurrentDateTime}}",
-    │               "entryPointId": "{{EntryPointId}}",
-    │               "context": "{{CollectedData}}",
-    │               "sessionId": "{{SessionId}}",
-    │               "dnis": "{{NewPhoneContact.DNIS}}"
-    │           }
-```
-
-### 3. HTTP Request Node Configuration
-
-**Node Settings:**
-- Request Type: POST
-- Content Type: application/json
-- URL: `https://your-backend.onrender.com/api/abandon`
-- Timeout: 5 seconds
-- Parse Response: Optional (for logging)
-
-**Request Body:**
 ```json
 {
-  "ani": "{{NewPhoneContact.ANI}}",
-  "queue": "{{Queue.Name}}",
-  "abandonedAt": "{{Global_CurrentDateTime}}",
-  "entryPointId": "{{EntryPoint.Id}}",
-  "context": "{{CollectedData}}",
-  "sessionId": "{{Global_SessionId}}",
-  "dnis": "{{NewPhoneContact.DNIS}}"
+  "ani": "{{L_Calling_Number}}",
+  "queue": "{{L_SMC_Router_Name}}",
+  "abandonedAt": "{{now() | date: '%Y-%m-%dT%H:%M:%SZ'}}",
+  "callId": "{{L_Call_ID}}",
+  "dnis": "{{L_DNIS}}",
+  "context": "{{L_Call_Reason}}",
+  "callerName": "{{L_Caller_Name}}",
+  "queueId": "{{L_QueueID}}",
+  "companyName": "{{Company_Name}}",
+  "vertical": "{{Vertical}}"
 }
 ```
 
-**Headers:**
-- Content-Type: application/json
+### Alternative Minimal Body
 
-### 4. Alternative: Queue Timeout Handling
+If you only need the essentials:
 
-You can also capture abandons through queue timeout:
+```json
+{
+  "ani": "{{L_Calling_Number}}",
+  "queue": "{{L_SMC_Router_Name}}",
+  "context": "{{L_Call_Reason}}",
+  "callerName": "{{L_Caller_Name}}"
+}
+```
+
+## Flow Variable Reference
+
+Based on your flow, these are the relevant variables:
+
+| Variable | Use | Example Value |
+|----------|-----|---------------|
+| `L_Calling_Number` | Caller's ANI | `+13305551234` |
+| `L_Call_Reason` | IVR selection/reason | `Billing inquiry` |
+| `L_Call_ID` | Unique call identifier | `abc123-def456` |
+| `L_DNIS` | Dialed number | `+18005551234` |
+| `L_Caller_Name` | Caller name (if collected) | `John Smith` |
+| `L_SMC_Router_Name` | Queue/router name | `Sales_Queue` |
+| `L_QueueID` | Queue ID | `Q_001` |
+| `Company_Name` | Company name | `Acme Corp` |
+| `Vertical` | Business vertical | `Retail` |
+| `Abandoned` | Abandon flag | `true` |
+
+## Flow Structure
+
+### Abandon Detection Pattern
 
 ```
 Queue Contact Node
-    │
-    ├── On Success: Connect to Agent
-    │
-    ├── On Timeout: 
-    │   ├── Set Abandoned = true
-    │   ├── Set AbandonPoint = "QueueTimeout"
-    │   └── HTTP Request (same as above)
-    │
-    └── On Error: Handle error flow
+    |
+    +-- On Success --> Agent connects (normal flow)
+    |
+    +-- On Failure/Timeout --> Set Abandoned = true
+    |                              |
+    |                              v
+    |                         HTTP Request Node
+    |                         POST to /api/abandon
+    |
+    +-- OnGlobalError --> Check if in queue, then HTTP Request
 ```
 
-## Variable Reference
+### Using the Abandoned Variable
 
-### Standard WxCC Variables
-
-| Variable                    | Description                    |
-|-----------------------------|--------------------------------|
-| NewPhoneContact.ANI         | Caller's phone number          |
-| NewPhoneContact.DNIS        | Dialed number                  |
-| Queue.Name                  | Name of the queue              |
-| EntryPoint.Id               | Entry point identifier         |
-| Global_SessionId            | Unique session ID              |
-| Global_CurrentDateTime      | Current timestamp              |
-
-### Custom Variables for IVR Context
-
-Track what data was collected before abandonment:
-
+Before the HTTP Request node, you can set:
 ```
-CollectedData examples:
-- "Menu: Sales, Language: English"
-- "Account: 12345, Reason: Billing"
-- "Product: Widget Pro, Issue: Returns"
+Set Variable: Abandoned = true
 ```
 
-## Testing the Integration
-
-### 1. Test the Backend Directly
-
-```bash
-# Test abandon endpoint
-curl -X POST https://your-backend.onrender.com/api/abandon \
-  -H "Content-Type: application/json" \
-  -d '{
-    "ani": "+13305551234",
-    "queue": "Sales_Queue",
-    "abandonedAt": "2024-01-15T10:30:00Z",
-    "context": "Called about billing",
-    "entryPointId": "EP_001"
-  }'
-
-# Check callbacks list
-curl https://your-backend.onrender.com/api/callbacks
-
-# Check stats
-curl https://your-backend.onrender.com/api/stats
+Then in the HTTP body, optionally include:
+```json
+{
+  "ani": "{{L_Calling_Number}}",
+  "queue": "{{L_SMC_Router_Name}}",
+  "context": "{{L_Call_Reason}}",
+  "abandoned": "{{Abandoned}}"
+}
 ```
-
-### 2. Test in Flow Designer
-
-1. Publish flow to development environment
-2. Call into the entry point
-3. Navigate through IVR
-4. Hang up before reaching an agent
-5. Check backend logs or /api/stats endpoint
-6. Verify callback appears in agent widget
 
 ## Error Handling
 
 The HTTP Request node should handle failures gracefully:
 
+- **On Success**: Continue or end flow
+- **On Error**: Log error but don't block (the call already ended)
+
+## Testing the Integration
+
+### Test with curl
+
+```bash
+# Simulate an abandon from your flow
+curl -X POST https://bs-callback-widget-production.up.railway.app/api/abandon \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ani": "+13305551234",
+    "queue": "Sales_Queue",
+    "context": "Billing inquiry",
+    "callerName": "John Smith",
+    "queueId": "Q_001"
+  }'
+
+# Verify it was recorded
+curl https://bs-callback-widget-production.up.railway.app/api/callbacks
 ```
-HTTP Request
-    │
-    ├── On Success: Log success (optional)
-    │
-    └── On Error: 
-        └── Log error but continue
-            (Don't block flow for HTTP failures)
-```
 
-## Security Considerations
+### Check Backend Logs
 
-For production:
+In Render dashboard, check the Logs tab to see incoming requests and any errors.
 
-1. **Add Authentication**: Use API key or JWT token in HTTP Request headers
-2. **Restrict CORS**: Limit backend CORS to your WxCC domains
-3. **Rate Limiting**: Implement rate limiting on the backend
-4. **Data Retention**: Set appropriate retention policies for callback data
+## Troubleshooting
+
+### HTTP Request Failing
+
+1. **Check URL**: Must be exactly `https://bs-callback-widget-production.up.railway.app/api/abandon`
+2. **Check Method**: Must be `POST`
+3. **Check Content-Type**: Must be `Application/JSON`
+4. **Check Variable Syntax**: Use `{{Variable_Name}}` format
+5. **Check for Typos**: Variable names are case-sensitive
+
+### Variables Not Populating
+
+If variables show as empty or literal `{{Variable_Name}}`:
+- Ensure the variable exists in your flow
+- Ensure the variable has a value at the point of the HTTP Request
+- Check variable scope (flow vs global)
+
+### Backend Not Receiving Requests
+
+1. Test backend health: `curl https://bs-callback-widget-production.up.railway.app/health`
+2. Check Render logs for incoming requests
+3. Verify the flow reaches the HTTP Request node (add logging before it)
