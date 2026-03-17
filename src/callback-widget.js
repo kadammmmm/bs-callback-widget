@@ -20,12 +20,16 @@ class CallbackWidget extends LitElement {
     outdialEp: { type: String, attribute: 'outdial-ep' },
     outdialAni: { type: String, attribute: 'outdial-ani' },
     // Support for multiple ANIs - can be comma-separated string or JSON array
-    // Example: "+18005551234,+18005555678" or JSON array in layout
     outdialAniList: { type: Array, attribute: 'outdial-ani-list' },
     // Currently selected ANI (for multi-ANI scenarios)
     selectedAni: { type: String },
     // Show ANI selector modal
-    showAniSelector: { type: Boolean }
+    showAniSelector: { type: Boolean },
+    // Search/filter
+    searchQuery: { type: String },
+    // Priority thresholds (in minutes) - configurable via layout
+    priorityWarningMins: { type: Number, attribute: 'priority-warning-mins' },  // Yellow threshold
+    priorityCriticalMins: { type: Number, attribute: 'priority-critical-mins' } // Red threshold
   };
 
   static styles = css`
@@ -703,6 +707,137 @@ class CallbackWidget extends LitElement {
     .btn-secondary:hover {
       background: var(--bg-hover);
     }
+
+    /* Search bar */
+    .search-bar {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .search-input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-input-wrapper svg {
+      position: absolute;
+      left: 12px;
+      width: 16px;
+      height: 16px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 10px 12px 10px 38px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 13px;
+      background: var(--bg-color);
+      color: var(--text-color);
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(0, 188, 235, 0.1);
+    }
+
+    .search-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .search-clear {
+      position: absolute;
+      right: 8px;
+      background: none;
+      border: none;
+      padding: 4px;
+      cursor: pointer;
+      color: var(--text-muted);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .search-clear:hover {
+      background: var(--bg-hover);
+      color: var(--text-color);
+    }
+
+    /* Priority indicators */
+    .priority-indicator {
+      width: 4px;
+      border-radius: 2px;
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+    }
+
+    .priority-normal {
+      background: var(--success-color);
+    }
+
+    .priority-warning {
+      background: var(--warning-color);
+    }
+
+    .priority-critical {
+      background: var(--danger-color);
+      animation: pulse-critical 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-critical {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    .callback-card {
+      position: relative;
+      padding-left: 20px;
+    }
+
+    .wait-time {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 8px;
+    }
+
+    .wait-time.normal {
+      background: rgba(40, 167, 69, 0.1);
+      color: var(--success-color);
+    }
+
+    .wait-time.warning {
+      background: rgba(245, 158, 11, 0.1);
+      color: var(--warning-color);
+    }
+
+    .wait-time.critical {
+      background: rgba(220, 53, 69, 0.1);
+      color: var(--danger-color);
+    }
+
+    /* No results */
+    .no-results {
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    .no-results svg {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
   `;
 
   constructor() {
@@ -723,6 +858,11 @@ class CallbackWidget extends LitElement {
     this._pendingDialCallback = null; // Callback waiting for ANI selection
     this._sdkLogger = null;
     this._pollInterval = null;
+    // Search/filter
+    this.searchQuery = '';
+    // Priority thresholds (configurable, defaults: 60 min warning, 120 min critical)
+    this.priorityWarningMins = 60;
+    this.priorityCriticalMins = 120;
   }
 
   connectedCallback() {
@@ -1224,6 +1364,63 @@ class CallbackWidget extends LitElement {
     this.error = null;
   }
 
+  _handleSearch(e) {
+    this.searchQuery = e.target.value;
+  }
+
+  _clearSearch() {
+    this.searchQuery = '';
+  }
+
+  _getFilteredCallbacks() {
+    if (!this.searchQuery || this.searchQuery.trim() === '') {
+      return this.callbacks;
+    }
+
+    const query = this.searchQuery.toLowerCase().trim();
+    return this.callbacks.filter(callback => {
+      const ani = (callback.ani || '').toLowerCase();
+      const queue = (callback.queue || '').toLowerCase();
+      const callerName = (callback.callerName || '').toLowerCase();
+      const context = (callback.context || '').toLowerCase();
+      
+      return ani.includes(query) || 
+             queue.includes(query) || 
+             callerName.includes(query) ||
+             context.includes(query);
+    });
+  }
+
+  _getWaitTimeMinutes(abandonedAt) {
+    const now = new Date();
+    const abandoned = new Date(abandonedAt);
+    return Math.floor((now - abandoned) / 60000);
+  }
+
+  _getPriorityLevel(abandonedAt) {
+    const waitMins = this._getWaitTimeMinutes(abandonedAt);
+    
+    if (waitMins >= this.priorityCriticalMins) {
+      return 'critical';
+    } else if (waitMins >= this.priorityWarningMins) {
+      return 'warning';
+    }
+    return 'normal';
+  }
+
+  _formatWaitTime(abandonedAt) {
+    const waitMins = this._getWaitTimeMinutes(abandonedAt);
+    
+    if (waitMins < 1) return 'Just now';
+    if (waitMins < 60) return `${waitMins}m`;
+    
+    const hours = Math.floor(waitMins / 60);
+    const mins = waitMins % 60;
+    
+    if (mins === 0) return `${hours}h`;
+    return `${hours}h ${mins}m`;
+  }
+
   _formatTime(isoString) {
     const date = new Date(isoString);
     const now = new Date();
@@ -1319,6 +1516,32 @@ class CallbackWidget extends LitElement {
           </div>
         ` : ''}
 
+        ${this.callbacks.length > 0 ? html`
+          <div class="search-bar">
+            <div class="search-input-wrapper">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="M21 21l-4.35-4.35"/>
+              </svg>
+              <input 
+                type="text" 
+                class="search-input" 
+                placeholder="Search by phone, queue, or caller name..."
+                .value=${this.searchQuery}
+                @input=${this._handleSearch}
+              />
+              ${this.searchQuery ? html`
+                <button class="search-clear" @click=${this._clearSearch}>
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        ` : ''}
+
         ${this.callbacks.length === 0 ? html`
           <div class="empty-state">
             <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -1328,9 +1551,17 @@ class CallbackWidget extends LitElement {
             <div class="empty-title">No callbacks pending</div>
             <div class="empty-text">When customers abandon calls, they'll appear here for follow-up.</div>
           </div>
+        ` : this._getFilteredCallbacks().length === 0 ? html`
+          <div class="no-results">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="M21 21l-4.35-4.35"/>
+            </svg>
+            <div>No callbacks match "${this.searchQuery}"</div>
+          </div>
         ` : html`
           <div class="callback-list">
-            ${this.callbacks.map(callback => this._renderCallbackCard(callback))}
+            ${this._getFilteredCallbacks().map(callback => this._renderCallbackCard(callback))}
           </div>
         `}
 
@@ -1385,6 +1616,9 @@ class CallbackWidget extends LitElement {
     const isClaimedByOther = callback.claimedBy && !isClaimedByMe;
     const isClaiming = this.claimingId === callback.id;
     const isDialing = this.dialingId === callback.id;
+    
+    const priorityLevel = this._getPriorityLevel(callback.abandonedAt);
+    const waitTime = this._formatWaitTime(callback.abandonedAt);
 
     const statusClass = isClaimedByMe ? 'claimed' : (isClaimedByOther ? 'claimed-by-other' : '');
     const statusLabel = isClaimedByMe ? 'Claimed' : (isClaimedByOther ? 'Unavailable' : 'Pending');
@@ -1392,6 +1626,7 @@ class CallbackWidget extends LitElement {
 
     return html`
       <div class="callback-card ${statusClass}">
+        <div class="priority-indicator priority-${priorityLevel}"></div>
         <div class="card-header">
           <div class="caller-info">
             <div class="caller-avatar">
@@ -1401,7 +1636,10 @@ class CallbackWidget extends LitElement {
               </svg>
             </div>
             <div class="caller-details">
-              <div class="caller-ani">${this._formatANI(callback.ani)}</div>
+              <div class="caller-ani">
+                ${this._formatANI(callback.ani)}
+                <span class="wait-time ${priorityLevel}">${waitTime}</span>
+              </div>
               <div class="caller-meta">
                 <span class="meta-tag queue">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
