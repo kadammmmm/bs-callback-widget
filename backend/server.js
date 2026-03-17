@@ -99,12 +99,16 @@ app.post('/api/abandon', (req, res) => {
       ivrData,
       sessionId,
       dnis,
-      // Additional fields from your flow
+      // Additional built-in fields
       callId,
       callerName,
       queueId,
       companyName,
-      vertical
+      vertical,
+      // Generic custom fields object - any key-value pairs
+      customFields,
+      // Also support flat custom_* fields for simpler Flow configuration
+      ...otherFields
     } = req.body;
 
     console.log('Parsed ANI:', ani);
@@ -131,6 +135,29 @@ app.post('/api/abandon', (req, res) => {
       });
     }
 
+    // Build customFields from explicit object or from custom_* prefixed fields
+    let finalCustomFields = {};
+    
+    // Add explicit customFields object if provided
+    if (customFields && typeof customFields === 'object') {
+      finalCustomFields = { ...customFields };
+    }
+    
+    // Also extract any custom_* prefixed fields and convert to readable labels
+    // e.g., custom_accountNumber becomes "Account Number"
+    Object.keys(otherFields).forEach(key => {
+      if (key.startsWith('custom_') && otherFields[key]) {
+        // Convert custom_accountNumber to "Account Number"
+        const label = key
+          .replace('custom_', '')
+          .replace(/([A-Z])/g, ' $1')
+          .replace(/_/g, ' ')
+          .trim()
+          .replace(/^\w/, c => c.toUpperCase());
+        finalCustomFields[label] = otherFields[key];
+      }
+    });
+
     const callback = {
       id: randomUUID(),
       ani,
@@ -145,6 +172,7 @@ app.post('/api/abandon', (req, res) => {
       queueId: queueId || null,
       companyName: companyName || null,
       vertical: vertical || null,
+      customFields: Object.keys(finalCustomFields).length > 0 ? finalCustomFields : null,
       status: 'pending',
       claimedBy: null,
       claimedAt: null,

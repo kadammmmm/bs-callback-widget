@@ -48,8 +48,19 @@ class CallbackWidget extends LitElement {
       --bg-secondary: #f8fafc;
       --border-color: #e2e8f0;
       --text-muted: #64748b;
+      --text-color: #1e293b;
       --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
       --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      --bg-hover: #f1f5f9;
+    }
+
+    :host([darkmode="true"]) {
+      --bg-color: #1a1a1a;
+      --bg-secondary: #0d0d0d;
+      --border-color: #333;
+      --text-color: #e5e5e5;
+      --text-muted: #999;
+      --bg-hover: #262626;
     }
 
     /* Main panel container */
@@ -57,134 +68,168 @@ class CallbackWidget extends LitElement {
       display: flex;
       flex-direction: column;
       height: 100%;
-      background: var(--bg-secondary);
+      background: var(--bg-color);
     }
 
-    /* Panel header */
+    /* Panel header - matches Call Selector */
     .panel-header {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
-      padding: 16px 20px;
+      padding: 16px 20px 12px;
       background: var(--bg-color);
-      border-bottom: 1px solid var(--border-color);
       flex-shrink: 0;
     }
 
     .header-left {
       display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .header-icon {
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
-      border-radius: 10px;
-      color: white;
-    }
-
-    .header-icon svg {
-      width: 22px;
-      height: 22px;
+      flex-direction: column;
+      gap: 4px;
     }
 
     .header-title {
-      font-size: 16px;
+      font-size: 18px;
       font-weight: 600;
-      color: #1e293b;
+      color: var(--text-color);
     }
 
     .header-subtitle {
       font-size: 12px;
       color: var(--text-muted);
-      margin-top: 2px;
     }
 
-    .header-actions {
+    .header-subtitle a {
+      color: #f7931e;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .header-subtitle a:hover {
+      text-decoration: underline;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Live indicator - matches Call Selector */
+    .live-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: rgba(40, 167, 69, 0.1);
+      border: 1px solid rgba(40, 167, 69, 0.2);
+      border-radius: 16px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--success-color);
+    }
+
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--success-color);
+      border-radius: 50%;
+      animation: pulse-live 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-live {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Stats tabs - matches Call Selector pill buttons */
+    .stats-bar {
       display: flex;
       align-items: center;
       gap: 8px;
+      padding: 0 20px 16px;
+      flex-wrap: wrap;
     }
 
-    .refresh-btn {
-      display: flex;
+    .stat-pill {
+      display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 8px 14px;
-      background: var(--bg-color);
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 13px;
       font-weight: 500;
-      color: var(--text-muted);
-      cursor: pointer;
-      transition: all 0.15s ease;
+      border: none;
+      cursor: default;
     }
 
-    .refresh-btn:hover {
-      background: var(--bg-secondary);
-      border-color: var(--primary-color);
-      color: var(--primary-color);
+    .stat-pill.pending {
+      background: var(--success-color);
+      color: white;
     }
 
-    .refresh-btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
+    .stat-pill.claimed {
+      background: var(--primary-color);
+      color: white;
     }
 
-    .refresh-btn svg {
-      width: 14px;
-      height: 14px;
+    .stat-pill.warning {
+      background: var(--warning-color);
+      color: white;
     }
 
-    .refresh-btn.loading svg {
-      animation: spin 1s linear infinite;
+    .stat-pill.critical {
+      background: var(--danger-color);
+      color: white;
     }
 
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
+    .stat-pill.neutral {
+      background: #e5e7eb;
+      color: #6b7280;
     }
 
-    /* Stats bar */
-    .stats-bar {
+    .stat-pill-count {
+      background: rgba(255, 255, 255, 0.3);
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .stat-pill.neutral .stat-pill-count {
+      background: rgba(0, 0, 0, 0.1);
+    }
+
+    /* Version footer */
+    .panel-footer {
       display: flex;
-      gap: 16px;
-      padding: 12px 20px;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 20px;
+      border-top: 1px solid var(--border-color);
+      font-size: 11px;
+      color: var(--text-muted);
       background: var(--bg-color);
-      border-bottom: 1px solid var(--border-color);
       flex-shrink: 0;
     }
 
-    .stat-item {
+    .refresh-info {
       display: flex;
       align-items: center;
-      gap: 6px;
-      font-size: 12px;
+      gap: 4px;
     }
 
-    .stat-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
+    .refresh-info svg {
+      width: 12px;
+      height: 12px;
     }
 
-    .stat-dot.pending { background: var(--warning-color); }
-    .stat-dot.claimed { background: var(--primary-color); }
-    .stat-dot.dialed { background: var(--success-color); }
-
-    .stat-count {
-      font-weight: 600;
-      color: #1e293b;
+    /* Remove old header icon styles */
+    .header-icon {
+      display: none;
     }
 
-    .stat-label {
-      color: var(--text-muted);
+    .header-actions {
+      display: none;
     }
 
     /* Callback list */
@@ -838,6 +883,39 @@ class CallbackWidget extends LitElement {
       margin-bottom: 12px;
       opacity: 0.5;
     }
+
+    /* Custom fields */
+    .custom-fields {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 10px 14px;
+      border-top: 1px solid var(--border-color);
+      background: var(--bg-hover);
+    }
+
+    .custom-field {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 100px;
+      flex: 1;
+      max-width: 50%;
+    }
+
+    .custom-field-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+    }
+
+    .custom-field-value {
+      font-size: 13px;
+      color: var(--text-color);
+      word-break: break-word;
+    }
   `;
 
   constructor() {
@@ -1384,10 +1462,19 @@ class CallbackWidget extends LitElement {
       const callerName = (callback.callerName || '').toLowerCase();
       const context = (callback.context || '').toLowerCase();
       
+      // Also search custom fields values
+      let customFieldsMatch = false;
+      if (callback.customFields) {
+        customFieldsMatch = Object.values(callback.customFields).some(value => 
+          String(value).toLowerCase().includes(query)
+        );
+      }
+      
       return ani.includes(query) || 
              queue.includes(query) || 
              callerName.includes(query) ||
-             context.includes(query);
+             context.includes(query) ||
+             customFieldsMatch;
     });
   }
 
@@ -1456,47 +1543,44 @@ class CallbackWidget extends LitElement {
 
   render() {
     const stats = this._getStats();
+    
+    // Count priority levels
+    const criticalCount = this.callbacks.filter(c => !c.claimedBy && this._getPriorityLevel(c.abandonedAt) === 'critical').length;
+    const warningCount = this.callbacks.filter(c => !c.claimedBy && this._getPriorityLevel(c.abandonedAt) === 'warning').length;
+    const normalCount = this.callbacks.filter(c => !c.claimedBy && this._getPriorityLevel(c.abandonedAt) === 'normal').length;
 
     return html`
       <div class="panel-container">
         <div class="panel-header">
           <div class="header-left">
-            <div class="header-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-              </svg>
-            </div>
-            <div>
-              <div class="header-title">Abandoned Callbacks</div>
-              <div class="header-subtitle">${this.callbacks.length} pending follow-ups</div>
-            </div>
+            <div class="header-title">CallBack Queue</div>
+            <div class="header-subtitle">powered by <a href="https://bucher-suter.com" target="_blank">bucher+suter</a></div>
           </div>
-          <div class="header-actions">
-            <button 
-              class="refresh-btn ${this.loading ? 'loading' : ''}"
-              @click=${this._fetchCallbacks}
-              ?disabled=${this.loading}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M23 4v6h-6M1 20v-6h6"/>
-                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-              </svg>
-              ${this.loading ? 'Refreshing...' : 'Refresh'}
-            </button>
+          <div class="header-right">
+            <div class="live-indicator">
+              <span class="live-dot"></span>
+              LIVE
+            </div>
           </div>
         </div>
 
         <div class="stats-bar">
-          <div class="stat-item">
-            <span class="stat-dot pending"></span>
-            <span class="stat-count">${stats.pending}</span>
-            <span class="stat-label">Pending</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-dot claimed"></span>
-            <span class="stat-count">${stats.claimed}</span>
-            <span class="stat-label">Claimed</span>
-          </div>
+          <span class="stat-pill pending">
+            Pending <span class="stat-pill-count">${normalCount}</span>
+          </span>
+          <span class="stat-pill claimed">
+            Claimed <span class="stat-pill-count">${stats.claimed}</span>
+          </span>
+          ${warningCount > 0 ? html`
+            <span class="stat-pill warning">
+              Warning <span class="stat-pill-count">${warningCount}</span>
+            </span>
+          ` : ''}
+          ${criticalCount > 0 ? html`
+            <span class="stat-pill critical">
+              Critical <span class="stat-pill-count">${criticalCount}</span>
+            </span>
+          ` : ''}
         </div>
 
         ${this.error ? html`
@@ -1545,11 +1629,11 @@ class CallbackWidget extends LitElement {
         ${this.callbacks.length === 0 ? html`
           <div class="empty-state">
             <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-              <path d="M15 5l4 4M19 5l-4 4" stroke-linecap="round"/>
+              <rect x="3" y="4" width="18" height="16" rx="2"/>
+              <path d="M3 10h18"/>
             </svg>
-            <div class="empty-title">No callbacks pending</div>
-            <div class="empty-text">When customers abandon calls, they'll appear here for follow-up.</div>
+            <div class="empty-title">No calls in queue</div>
+            <div class="empty-text">Calls will appear here automatically when customers abandon while waiting.</div>
           </div>
         ` : this._getFilteredCallbacks().length === 0 ? html`
           <div class="no-results">
@@ -1566,6 +1650,17 @@ class CallbackWidget extends LitElement {
         `}
 
         ${this.showAniSelector ? this._renderAniSelector() : ''}
+
+        <div class="panel-footer">
+          <div class="refresh-info">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            ${this.loading ? 'Refreshing...' : 'Just now'}
+          </div>
+          <div>v1.0.0</div>
+        </div>
       </div>
     `;
   }
@@ -1673,6 +1768,17 @@ class CallbackWidget extends LitElement {
           <div class="card-context">
             <div class="card-context-label">Caller</div>
             ${callback.callerName}
+          </div>
+        ` : ''}
+
+        ${callback.customFields && Object.keys(callback.customFields).length > 0 ? html`
+          <div class="custom-fields">
+            ${Object.entries(callback.customFields).map(([label, value]) => html`
+              <div class="custom-field">
+                <span class="custom-field-label">${label}</span>
+                <span class="custom-field-value">${value}</span>
+              </div>
+            `)}
           </div>
         ` : ''}
 

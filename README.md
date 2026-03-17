@@ -1,8 +1,8 @@
-# Abandoned Call Callback Widget for Webex Contact Center
+# CallBack Queue for Webex Contact Center
 
 A custom Agent Desktop widget that surfaces abandoned calls for proactive agent follow-up. When customers disconnect during IVR or while waiting in queue, this solution captures the interaction data and presents it to agents for callback.
 
-**Developed by bucher+suter**
+**Powered by bucher+suter**
 
 ---
 
@@ -249,6 +249,45 @@ Add an HTTP Request node to your flow that triggers when a call is abandoned.
 | `context` | IVR context, reason for call | `Billing inquiry` |
 | `callerName` | Caller name if collected | `John Smith` |
 | `dnis` | Dialed number | `+18005559999` |
+
+#### Custom Fields
+
+You can pass any additional data fields to display in the widget. There are two methods:
+
+**Method 1: customFields Object (Recommended)**
+
+```json
+{
+  "ani": "{{NewPhoneContact.ANI}}",
+  "queue": "{{Queue.name}}",
+  "customFields": {
+    "Account Number": "{{accountNumber}}",
+    "VIP Status": "{{vipTier}}",
+    "Product Interest": "{{selectedProduct}}",
+    "Previous Agent": "{{lastAgentName}}"
+  }
+}
+```
+
+**Method 2: Prefixed Fields**
+
+Use `custom_` prefix for automatic label conversion:
+
+```json
+{
+  "ani": "{{NewPhoneContact.ANI}}",
+  "queue": "{{Queue.name}}",
+  "custom_accountNumber": "{{accountNumber}}",
+  "custom_vipStatus": "{{vipTier}}",
+  "custom_productInterest": "{{selectedProduct}}"
+}
+```
+
+The prefix is removed and camelCase is converted to readable labels:
+- `custom_accountNumber` becomes "Account Number"
+- `custom_vipStatus` becomes "Vip Status"
+
+Custom fields are displayed in a dedicated section on each callback card and are searchable via the filter.
 
 #### Flow Placement
 
