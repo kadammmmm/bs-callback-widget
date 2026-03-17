@@ -27,7 +27,7 @@
             "darkmode": "$STORE.app.darkMode"
           },
           "properties": {
-            "backendUrl": "https://bs-callback-widget-production.up.railway.app/api",
+            "backendUrl": "https://abandoncallbacks.bswxcc.com/api",
             "accessToken": "$STORE.auth.accessToken",
             "outdialEp": "$STORE.agent.outDialEp",
             "outdialAni": "+18005551234"
@@ -51,7 +51,7 @@
   "_multi_ani_example": {
     "_comment": "Use this format if agents need to choose from multiple ANIs",
     "properties": {
-      "backendUrl": "https://bs-callback-widget-production.up.railway.app/api",
+      "backendUrl": "https://abandoncallbacks.bswxcc.com/api",
       "accessToken": "$STORE.auth.accessToken",
       "outdialEp": "$STORE.agent.outDialEp",
       "outdialAniList": "+18005551234,+18005555678,+18005559999"

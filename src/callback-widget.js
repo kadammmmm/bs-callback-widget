@@ -714,7 +714,7 @@ class CallbackWidget extends LitElement {
     this.agentState = 'Unknown';
     this.claimingId = null;
     this.dialingId = null;
-    this.backendUrl = 'https://bs-callback-widget-production.up.railway.app/api';
+    this.backendUrl = 'https://abandoncallbacks.bswxcc.com/api';
     this.outdialEp = null;  // Outdial Entry Point ID - passed from layout
     this.outdialAni = null; // Single Outdial ANI - passed from layout
     this.outdialAniList = null; // Multiple ANIs - array or comma-separated

@@ -8,6 +8,10 @@
  * - Serving the widget JS file (no GitHub Pages needed)
  * 
  * Deploy to: Render, Railway, Fly.io, or any Node.js host
+ * 
+ * Environment Variables:
+ * - PORT: Server port (default: 3000)
+ * - CALLBACK_TTL_HOURS: Hours before callbacks expire (default: 48)
  */
 
 import express from 'express';
@@ -21,6 +25,12 @@ const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Configurable TTL for callbacks (in hours) - default 48 hours
+const CALLBACK_TTL_HOURS = parseInt(process.env.CALLBACK_TTL_HOURS) || 48;
+const CALLBACK_TTL_MS = CALLBACK_TTL_HOURS * 60 * 60 * 1000;
+
+console.log(`Callback TTL configured: ${CALLBACK_TTL_HOURS} hours`);
 
 // In-memory store (replace with database for production)
 // For production, use MongoDB, PostgreSQL, or Redis
@@ -53,7 +63,12 @@ app.use((req, res, next) => {
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'healthy', timestamp: new Date().toISOString(), callbackCount: callbacks.length });
+  res.json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(), 
+    callbackCount: callbacks.length,
+    callbackTTLHours: CALLBACK_TTL_HOURS
+  });
 });
 
 // Debug endpoint - see all callbacks
@@ -161,10 +176,11 @@ app.post('/api/abandon', (req, res) => {
 app.get('/api/callbacks', (req, res) => {
   const agentId = req.headers['x-agent-id'];
   
-  // Filter out completed callbacks older than 24 hours
-  const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+  // Filter out expired callbacks (older than TTL)
+  const ttlCutoff = Date.now() - CALLBACK_TTL_MS;
   const activeCallbacks = callbacks.filter(c => {
-    if (c.status === 'completed' && new Date(c.completedAt).getTime() < oneDayAgo) {
+    // Remove if older than TTL
+    if (new Date(c.createdAt).getTime() < ttlCutoff) {
       return false;
     }
     // Don't show completed to agents
@@ -337,23 +353,24 @@ app.delete('/api/callbacks', (req, res) => {
   res.json({ message: `Cleared ${count} callbacks` });
 });
 
-// Cleanup old callbacks periodically (every hour)
+// Cleanup expired callbacks periodically (every hour)
 setInterval(() => {
-  const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+  const ttlCutoff = Date.now() - CALLBACK_TTL_MS;
   const before = callbacks.length;
   
   callbacks = callbacks.filter(c => 
-    new Date(c.createdAt).getTime() > oneWeekAgo
+    new Date(c.createdAt).getTime() > ttlCutoff
   );
   
   const removed = before - callbacks.length;
   if (removed > 0) {
-    console.log(`Cleanup: removed ${removed} old callbacks`);
+    console.log(`Cleanup: removed ${removed} expired callbacks (older than ${CALLBACK_TTL_HOURS} hours)`);
   }
-}, 60 * 60 * 1000);
+}, 60 * 60 * 1000); // Run every hour
 
 // Start server
 app.listen(PORT, () => {
   console.log(`Callback backend running on port ${PORT}`);
+  console.log(`Callback TTL: ${CALLBACK_TTL_HOURS} hours`);
   console.log(`Health check: http://localhost:${PORT}/health`);
 });

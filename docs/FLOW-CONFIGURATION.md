@@ -9,7 +9,7 @@ and send them to the callback backend service.
 
 | Setting | Value |
 |---------|-------|
-| **Request URL** | `https://bs-callback-widget-production.up.railway.app/api/abandon` |
+| **Request URL** | `https://abandoncallbacks.bswxcc.com/api/abandon` |
 | **Method** | `POST` |
 | **Content Type** | `Application/JSON` |
 | **Timeout** | `5` seconds |
@@ -109,7 +109,7 @@ The HTTP Request node should handle failures gracefully:
 
 ```bash
 # Simulate an abandon from your flow
-curl -X POST https://bs-callback-widget-production.up.railway.app/api/abandon \
+curl -X POST https://abandoncallbacks.bswxcc.com/api/abandon \
   -H "Content-Type: application/json" \
   -d '{
     "ani": "+13305551234",
@@ -120,7 +120,7 @@ curl -X POST https://bs-callback-widget-production.up.railway.app/api/abandon \
   }'
 
 # Verify it was recorded
-curl https://bs-callback-widget-production.up.railway.app/api/callbacks
+curl https://abandoncallbacks.bswxcc.com/api/callbacks
 ```
 
 ### Check Backend Logs
@@ -131,7 +131,7 @@ In Render dashboard, check the Logs tab to see incoming requests and any errors.
 
 ### HTTP Request Failing
 
-1. **Check URL**: Must be exactly `https://bs-callback-widget-production.up.railway.app/api/abandon`
+1. **Check URL**: Must be exactly `https://abandoncallbacks.bswxcc.com/api/abandon`
 2. **Check Method**: Must be `POST`
 3. **Check Content-Type**: Must be `Application/JSON`
 4. **Check Variable Syntax**: Use `{{Variable_Name}}` format
@@ -146,6 +146,6 @@ If variables show as empty or literal `{{Variable_Name}}`:
 
 ### Backend Not Receiving Requests
 
-1. Test backend health: `curl https://bs-callback-widget-production.up.railway.app/health`
+1. Test backend health: `curl https://abandoncallbacks.bswxcc.com/health`
 2. Check Render logs for incoming requests
 3. Verify the flow reaches the HTTP Request node (add logging before it)

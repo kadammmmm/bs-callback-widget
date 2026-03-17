@@ -26,8 +26,8 @@ This guide walks you through every step from downloading the code to seeing the 
 | Component | URL |
 |-----------|-----|
 | Widget Script | `https://kadammmmm.github.io/bs-callback-widget/index.js` |
-| Backend API | `https://bs-callback-widget-production.up.railway.app/api` |
-| Backend Health | `https://bs-callback-widget-production.up.railway.app/health` |
+| Backend API | `https://abandoncallbacks.bswxcc.com/api` |
+| Backend Health | `https://abandoncallbacks.bswxcc.com/health` |
 | GitHub Repo | `https://github.com/kadammmmm/bs-callback-widget` |
 
 ---
@@ -395,22 +395,22 @@ Fill in these settings:
 
 **Your backend URL is:**
 ```
-https://bs-callback-widget-production.up.railway.app
+https://abandoncallbacks.bswxcc.com
 ```
 
 ### Step 8.7: Test the Backend
 
 ```bash
 # Health check
-curl https://bs-callback-widget-production.up.railway.app/health
+curl https://abandoncallbacks.bswxcc.com/health
 
 # Create test callback
-curl -X POST https://bs-callback-widget-production.up.railway.app/api/abandon \
+curl -X POST https://abandoncallbacks.bswxcc.com/api/abandon \
   -H "Content-Type: application/json" \
   -d '{"ani":"+13305551234","queue":"Sales","context":"Test from curl"}'
 
 # List callbacks
-curl https://bs-callback-widget-production.up.railway.app/api/callbacks
+curl https://abandoncallbacks.bswxcc.com/api/callbacks
 ```
 
 ---
@@ -442,7 +442,7 @@ Add an **HTTP Request** node that fires when the call disconnects before reachin
 
 | Setting | Value |
 |---------|-------|
-| Request URL | `https://bs-callback-widget-production.up.railway.app/api/abandon` |
+| Request URL | `https://abandoncallbacks.bswxcc.com/api/abandon` |
 | Method | `POST` |
 | Content Type | `Application/JSON` |
 
@@ -514,7 +514,7 @@ Find the `navigation` array in your layout. Add this object to the array:
           "darkmode": "$STORE.app.darkMode"
         },
         "properties": {
-          "backendUrl": "https://bs-callback-widget-production.up.railway.app/api",
+          "backendUrl": "https://abandoncallbacks.bswxcc.com/api",
           "accessToken": "$STORE.auth.accessToken"
         }
       },
@@ -574,7 +574,7 @@ If you want the callback widget to take the full page:
           "darkmode": "$STORE.app.darkMode"
         },
         "properties": {
-          "backendUrl": "https://bs-callback-widget-production.up.railway.app/api",
+          "backendUrl": "https://abandoncallbacks.bswxcc.com/api",
           "accessToken": "$STORE.auth.accessToken"
         }
       }
@@ -619,15 +619,15 @@ If you want the callback widget to take the full page:
 
 ```bash
 # Create a few test callbacks
-curl -X POST https://bs-callback-widget-production.up.railway.app/api/abandon \
+curl -X POST https://abandoncallbacks.bswxcc.com/api/abandon \
   -H "Content-Type: application/json" \
   -d '{"ani":"+13305551111","queue":"Sales","context":"Interested in pricing"}'
 
-curl -X POST https://bs-callback-widget-production.up.railway.app/api/abandon \
+curl -X POST https://abandoncallbacks.bswxcc.com/api/abandon \
   -H "Content-Type: application/json" \
   -d '{"ani":"+13305552222","queue":"Support","context":"Password reset issue"}'
 
-curl -X POST https://bs-callback-widget-production.up.railway.app/api/abandon \
+curl -X POST https://abandoncallbacks.bswxcc.com/api/abandon \
   -H "Content-Type: application/json" \
   -d '{"ani":"+13305553333","queue":"Billing","context":"Invoice question"}'
 ```
@@ -694,7 +694,7 @@ fetch('https://kadammmmm.github.io/bs-callback-widget/index.js')
 
 **Check 1: Backend Health**
 ```bash
-curl https://bs-callback-widget-production.up.railway.app/health
+curl https://abandoncallbacks.bswxcc.com/health
 ```
 
 **Check 2: Render Dashboard**
@@ -749,10 +749,10 @@ npm run build && cp dist/callback-widget.js index.js && git add . && git commit 
 cd backend && npm run dev
 
 # Test backend health
-curl https://bs-callback-widget-production.up.railway.app/health
+curl https://abandoncallbacks.bswxcc.com/health
 
 # Create test callback
-curl -X POST https://bs-callback-widget-production.up.railway.app/api/abandon \
+curl -X POST https://abandoncallbacks.bswxcc.com/api/abandon \
   -H "Content-Type: application/json" \
   -d '{"ani":"+13305551234","queue":"Sales","context":"Test"}'
 ```
