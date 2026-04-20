@@ -35,168 +35,150 @@ class CallbackWidget extends LitElement {
   static styles = css`
     :host {
       display: block;
-      font-family: 'CiscoSansTT', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      font-size: 13px;
-      color: #171717;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      color: #0f172a;
       height: 100%;
-      --primary-color: #00bceb;
-      --primary-hover: #0095b8;
-      --success-color: #28a745;
-      --warning-color: #f59e0b;
-      --danger-color: #dc3545;
-      --bg-color: #ffffff;
-      --bg-secondary: #f8fafc;
-      --border-color: #e2e8f0;
-      --text-muted: #64748b;
-      --text-color: #1e293b;
-      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      --bg-hover: #f1f5f9;
+
+      /* Primary palette — matches Call Selector */
+      --primary-color:  #1a4b7a;
+      --primary-hover:  #143a61;
+
+      /* Urgency */
+      --success-color:  #16a34a;
+      --warning-color:  #d97706;
+      --danger-color:   #e31937;
+
+      /* Surfaces */
+      --bg-root:        #f0f4f8;
+      --bg-color:       #ffffff;
+      --bg-secondary:   #f0f4f8;
+      --bg-hover:       #f0f4f8;
+
+      /* Borders & text */
+      --border-color:   #dde3ea;
+      --text-color:     #0f172a;
+      --text-muted:     #94a3b8;
+      --text-secondary: #475569;
+
+      /* Misc */
+      --radius:         8px;
+      --shadow-sm:      0 1px 2px rgba(0,0,0,0.05);
+      --shadow:         0 4px 14px rgba(0,0,0,0.08);
+      --transition:     150ms ease;
     }
 
     :host([darkmode="true"]) {
-      --bg-color: #1a1a1a;
-      --bg-secondary: #0d0d0d;
-      --border-color: #333;
-      --text-color: #e5e5e5;
-      --text-muted: #999;
-      --bg-hover: #262626;
+      --primary-color:  #1e3a5f;
+      --primary-hover:  #162d4a;
+      --bg-root:        #0f1923;
+      --bg-color:       #1a2535;
+      --bg-secondary:   #0f1923;
+      --bg-hover:       #1f2f42;
+      --border-color:   #2a3a4e;
+      --text-color:     #e8edf3;
+      --text-muted:     #4d6a85;
+      --text-secondary: #8fa5be;
     }
 
-    /* Main panel container */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
     .panel-container {
       display: flex;
       flex-direction: column;
       height: 100%;
-      background: var(--bg-color);
+      background: var(--bg-root);
     }
 
-    /* Panel header - matches Call Selector */
+    /* Header — navy bar, matches Call Selector */
     .panel-header {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       justify-content: space-between;
-      padding: 16px 20px 12px;
-      background: var(--bg-color);
+      padding: 12px 16px;
+      background: var(--primary-color);
       flex-shrink: 0;
     }
 
     .header-left {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 2px;
     }
 
     .header-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--text-color);
-    }
-
-    .header-subtitle {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    .header-subtitle a {
-      color: #f7931e;
-      text-decoration: none;
-      font-weight: 500;
-    }
-
-    .header-subtitle a:hover {
-      text-decoration: underline;
+      font-size: 15px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.3px;
+      line-height: 1.2;
     }
 
     .header-right {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
     }
 
-    /* Live indicator - matches Call Selector */
     .live-indicator {
       display: flex;
       align-items: center;
       gap: 6px;
-      padding: 4px 10px;
-      background: rgba(40, 167, 69, 0.1);
-      border: 1px solid rgba(40, 167, 69, 0.2);
-      border-radius: 16px;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--success-color);
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.85);
+      letter-spacing: 0.5px;
     }
 
     .live-dot {
-      width: 6px;
-      height: 6px;
+      width: 8px;
+      height: 8px;
       background: var(--success-color);
       border-radius: 50%;
       animation: pulse-live 2s ease-in-out infinite;
     }
 
     @keyframes pulse-live {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(0.85); }
     }
 
-    /* Stats tabs - matches Call Selector pill buttons */
+    /* Stats bar */
     .stats-bar {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 0 20px 16px;
+      padding: 10px 16px;
+      background: var(--bg-color);
+      border-bottom: 1px solid var(--border-color);
       flex-wrap: wrap;
+      flex-shrink: 0;
     }
 
     .stat-pill {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      border-radius: 16px;
-      font-size: 13px;
-      font-weight: 500;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
       border: none;
       cursor: default;
     }
 
-    .stat-pill.pending {
-      background: var(--success-color);
-      color: white;
-    }
-
-    .stat-pill.claimed {
-      background: var(--primary-color);
-      color: white;
-    }
-
-    .stat-pill.warning {
-      background: var(--warning-color);
-      color: white;
-    }
-
-    .stat-pill.critical {
-      background: var(--danger-color);
-      color: white;
-    }
-
-    .stat-pill.neutral {
-      background: #e5e7eb;
-      color: #6b7280;
-    }
+    .stat-pill.pending  { background: rgba(22,163,74,0.12);  color: var(--success-color); }
+    .stat-pill.claimed  { background: rgba(26,75,122,0.12);  color: var(--primary-color); }
+    .stat-pill.warning  { background: rgba(217,119,6,0.12);  color: var(--warning-color); }
+    .stat-pill.critical { background: rgba(227,25,55,0.10);  color: var(--danger-color); }
+    .stat-pill.neutral  { background: var(--bg-secondary);   color: var(--text-muted); }
 
     .stat-pill-count {
-      background: rgba(255, 255, 255, 0.3);
-      padding: 1px 6px;
-      border-radius: 10px;
-      font-size: 11px;
-      font-weight: 600;
-    }
-
-    .stat-pill.neutral .stat-pill-count {
-      background: rgba(0, 0, 0, 0.1);
+      background: rgba(0,0,0,0.1);
+      padding: 0 5px;
+      border-radius: 8px;
+      font-size: 10px;
+      font-weight: 700;
     }
 
     /* Version footer */
@@ -204,9 +186,9 @@ class CallbackWidget extends LitElement {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 20px;
+      padding: 7px 14px;
       border-top: 1px solid var(--border-color);
-      font-size: 11px;
+      font-size: 10px;
       color: var(--text-muted);
       background: var(--bg-color);
       flex-shrink: 0;
@@ -218,192 +200,143 @@ class CallbackWidget extends LitElement {
       gap: 4px;
     }
 
-    .refresh-info svg {
-      width: 12px;
-      height: 12px;
-    }
+    .refresh-info svg { width: 12px; height: 12px; }
 
-    /* Remove old header icon styles */
-    .header-icon {
-      display: none;
-    }
-
-    .header-actions {
-      display: none;
-    }
+    .header-icon, .header-actions { display: none; }
 
     /* Callback list */
     .callback-list {
       flex: 1;
       overflow-y: auto;
-      padding: 16px 20px;
+      padding: 12px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
 
-    /* Callback card */
+    /* Callback card — left-border priority pattern, matches Call Selector */
     .callback-card {
       background: var(--bg-color);
       border: 1px solid var(--border-color);
-      border-radius: 10px;
-      padding: 16px;
+      border-left: 4px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 14px;
       box-shadow: var(--shadow-sm);
-      transition: all 0.15s ease;
+      transition: box-shadow var(--transition);
     }
 
-    .callback-card:hover {
-      box-shadow: var(--shadow);
-      border-color: #cbd5e1;
+    .callback-card:hover { box-shadow: var(--shadow); }
+
+    .callback-card.priority-normal  { border-left-color: var(--success-color); }
+    .callback-card.priority-warning { border-left-color: var(--warning-color); }
+    .callback-card.priority-critical {
+      border-left-color: var(--danger-color);
+      animation: pulse-border 2s ease-in-out infinite;
     }
 
-    .callback-card.claimed {
-      border-left: 4px solid var(--primary-color);
-      background: #f0f9ff;
+    @keyframes pulse-border {
+      0%, 100% { border-left-color: var(--danger-color); }
+      50%       { border-left-color: rgba(227,25,55,0.35); }
     }
 
-    .callback-card.dialed {
-      border-left: 4px solid var(--success-color);
-      background: #f0fdf4;
-    }
-
-    .callback-card.claimed-by-other {
-      opacity: 0.6;
-    }
+    .callback-card.claimed          { border-left-color: var(--primary-color); }
+    .callback-card.claimed-by-other { opacity: 0.6; }
 
     .card-header {
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
     .caller-info {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
     }
 
     .caller-avatar {
-      width: 44px;
-      height: 44px;
+      width: 40px;
+      height: 40px;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+      background: var(--primary-color);
       border-radius: 50%;
       color: white;
       flex-shrink: 0;
     }
 
-    .caller-avatar svg {
-      width: 22px;
-      height: 22px;
-    }
+    .caller-avatar svg { width: 20px; height: 20px; }
 
-    .caller-details {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
+    .caller-details { display: flex; flex-direction: column; gap: 4px; }
 
     .caller-ani {
-      font-size: 16px;
-      font-weight: 600;
-      color: #1e293b;
-      letter-spacing: 0.3px;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-color);
+      letter-spacing: 0.2px;
     }
 
-    .caller-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
+    .caller-meta { display: flex; flex-wrap: wrap; gap: 6px; }
 
     .meta-tag {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      padding: 3px 8px;
-      background: #f1f5f9;
+      padding: 2px 7px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
       border-radius: 4px;
       font-size: 11px;
       font-weight: 500;
-      color: #475569;
+      color: var(--text-secondary);
     }
 
-    .meta-tag.queue {
-      background: #dbeafe;
-      color: #1d4ed8;
-    }
-
-    .meta-tag.time {
-      background: #fef3c7;
-      color: #b45309;
-    }
-
-    .meta-tag svg {
-      width: 12px;
-      height: 12px;
-    }
+    .meta-tag.queue { background: rgba(26,75,122,0.08); color: var(--primary-color); border-color: rgba(26,75,122,0.15); }
+    .meta-tag.time  { background: rgba(217,119,6,0.08);  color: var(--warning-color);  border-color: rgba(217,119,6,0.15); }
+    .meta-tag svg   { width: 11px; height: 11px; }
 
     .card-status {
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      flex-shrink: 0;
     }
 
-    .card-status.pending {
-      background: #fef3c7;
-      color: #b45309;
-    }
+    .card-status.pending { background: rgba(22,163,74,0.12);  color: var(--success-color); }
+    .card-status.claimed { background: rgba(26,75,122,0.12);  color: var(--primary-color); }
+    .card-status.other   { background: var(--bg-secondary);   color: var(--text-muted); }
 
-    .card-status.claimed {
-      background: #dbeafe;
-      color: #1d4ed8;
-    }
-
-    .card-status.dialed {
-      background: #d1fae5;
-      color: #047857;
-    }
-
-    .card-status.other {
-      background: #f1f5f9;
-      color: #64748b;
-    }
-
-    /* Context section */
     .card-context {
-      padding: 10px 12px;
-      background: #f8fafc;
+      padding: 8px 10px;
+      background: var(--bg-secondary);
       border-radius: 6px;
       font-size: 12px;
-      color: #475569;
+      color: var(--text-secondary);
       line-height: 1.5;
-      margin-bottom: 12px;
-      border-left: 3px solid #e2e8f0;
+      margin-bottom: 10px;
+      border-left: 3px solid var(--border-color);
     }
 
     .card-context-label {
       font-size: 10px;
-      font-weight: 600;
+      font-weight: 700;
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.5px;
       margin-bottom: 4px;
     }
 
-    /* Actions section */
     .card-actions {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding-top: 12px;
-      border-top: 1px solid #f1f5f9;
+      padding-top: 10px;
+      border-top: 1px solid var(--border-color);
     }
 
     .action-btn {
@@ -411,199 +344,70 @@ class CallbackWidget extends LitElement {
       align-items: center;
       justify-content: center;
       gap: 6px;
-      padding: 10px 18px;
+      padding: 8px 16px;
       border: none;
       border-radius: 6px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-
-    .action-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .action-btn svg {
-      width: 16px;
-      height: 16px;
-    }
-
-    .action-btn.primary {
-      background: var(--primary-color);
-      color: white;
-    }
-
-    .action-btn.primary:hover:not(:disabled) {
-      background: var(--primary-hover);
-    }
-
-    .action-btn.success {
-      background: var(--success-color);
-      color: white;
-    }
-
-    .action-btn.success:hover:not(:disabled) {
-      background: #218838;
-    }
-
-    .action-btn.secondary {
-      background: #f1f5f9;
-      color: #475569;
-      border: 1px solid #e2e8f0;
-    }
-
-    .action-btn.secondary:hover:not(:disabled) {
-      background: #e2e8f0;
-    }
-
-    .action-btn.danger {
-      background: #fee2e2;
-      color: #dc2626;
-      border: 1px solid #fecaca;
-    }
-
-    .action-btn.danger:hover:not(:disabled) {
-      background: #fecaca;
-    }
-
-    .action-spacer {
-      flex: 1;
-    }
-
-    /* Outcome section */
-    .outcome-section {
-      margin-top: 12px;
-      padding: 12px;
-      background: #f0fdf4;
-      border-radius: 8px;
-      border: 1px dashed #86efac;
-    }
-
-    .outcome-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 10px;
-    }
-
-    .outcome-icon {
-      width: 20px;
-      height: 20px;
-      color: var(--success-color);
-    }
-
-    .outcome-title {
       font-size: 12px;
       font-weight: 600;
-      color: #047857;
-    }
-
-    .outcome-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .outcome-btn {
-      padding: 8px 14px;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      background: white;
-      font-size: 12px;
-      font-weight: 500;
       cursor: pointer;
-      transition: all 0.15s ease;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      transition: background var(--transition);
+      letter-spacing: 0.2px;
     }
 
-    .outcome-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: var(--shadow-sm);
-    }
+    .action-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .action-btn svg { width: 14px; height: 14px; }
 
-    .outcome-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      transform: none;
-    }
+    .action-btn.primary { background: var(--primary-color); color: white; }
+    .action-btn.primary:hover:not(:disabled) { background: var(--primary-hover); }
 
-    .outcome-btn.connected:hover {
-      border-color: #10b981;
-      background: #d1fae5;
-      color: #047857;
-    }
+    .action-btn.success { background: var(--success-color); color: white; }
+    .action-btn.success:hover:not(:disabled) { background: #15803d; }
 
-    .outcome-btn.voicemail:hover {
-      border-color: #f59e0b;
-      background: #fef3c7;
-      color: #b45309;
+    .action-btn.secondary {
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-color);
     }
+    .action-btn.secondary:hover:not(:disabled) { background: var(--border-color); }
 
-    .outcome-btn.no-answer:hover {
-      border-color: #6b7280;
-      background: #f3f4f6;
-      color: #374151;
+    .action-btn.danger {
+      background: rgba(227,25,55,0.08);
+      color: var(--danger-color);
+      border: 1px solid rgba(227,25,55,0.2);
     }
+    .action-btn.danger:hover:not(:disabled) { background: rgba(227,25,55,0.15); }
 
-    .outcome-btn.wrong-number:hover {
-      border-color: #ef4444;
-      background: #fee2e2;
-      color: #dc2626;
-    }
+    .action-spacer { flex: 1; }
 
-    /* Empty state */
     .empty-state {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 60px 20px;
+      padding: 48px 20px;
       text-align: center;
       flex: 1;
-    }
-
-    .empty-icon {
-      width: 80px;
-      height: 80px;
-      margin-bottom: 20px;
-      color: #cbd5e1;
-    }
-
-    .empty-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: #475569;
-      margin-bottom: 8px;
-    }
-
-    .empty-text {
-      font-size: 14px;
       color: var(--text-muted);
-      max-width: 300px;
+      gap: 8px;
     }
 
-    /* Error banner */
+    .empty-icon  { width: 64px; height: 64px; color: var(--border-color); margin-bottom: 8px; }
+    .empty-title { font-size: 14px; font-weight: 600; color: var(--text-secondary); }
+    .empty-text  { font-size: 12px; max-width: 260px; line-height: 1.5; }
+
     .error-banner {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 12px 20px;
-      background: #fef2f2;
-      border-bottom: 1px solid #fecaca;
+      padding: 10px 16px;
+      background: rgba(227,25,55,0.06);
+      border-bottom: 1px solid rgba(227,25,55,0.2);
       color: var(--danger-color);
-      font-size: 13px;
+      font-size: 12px;
       flex-shrink: 0;
     }
 
-    .error-banner svg {
-      width: 18px;
-      height: 18px;
-      flex-shrink: 0;
-    }
+    .error-banner svg { width: 16px; height: 16px; flex-shrink: 0; }
 
     .error-dismiss {
       margin-left: auto;
@@ -614,38 +418,17 @@ class CallbackWidget extends LitElement {
       cursor: pointer;
       opacity: 0.7;
     }
+    .error-dismiss:hover { opacity: 1; }
 
-    .error-dismiss:hover {
-      opacity: 1;
-    }
+    .callback-list::-webkit-scrollbar { width: 6px; }
+    .callback-list::-webkit-scrollbar-track { background: transparent; }
+    .callback-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+    .callback-list::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
-    /* Scrollbar styling */
-    .callback-list::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    .callback-list::-webkit-scrollbar-track {
-      background: #f1f5f9;
-      border-radius: 4px;
-    }
-
-    .callback-list::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 4px;
-    }
-
-    .callback-list::-webkit-scrollbar-thumb:hover {
-      background: #94a3b8;
-    }
-
-    /* Modal styles */
     .modal-overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
+      inset: 0;
+      background: rgba(0,0,0,0.5);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -655,9 +438,9 @@ class CallbackWidget extends LitElement {
     .modal-content {
       background: var(--bg-color);
       border-radius: 12px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
       width: 90%;
-      max-width: 400px;
+      max-width: 380px;
       max-height: 80vh;
       overflow: hidden;
     }
@@ -666,13 +449,13 @@ class CallbackWidget extends LitElement {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 16px 20px;
+      padding: 14px 18px;
       border-bottom: 1px solid var(--border-color);
     }
 
     .modal-header h3 {
       margin: 0;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 600;
       color: var(--text-color);
     }
@@ -685,78 +468,56 @@ class CallbackWidget extends LitElement {
       color: var(--text-muted);
       border-radius: 4px;
     }
+    .modal-close:hover { background: var(--bg-hover); color: var(--text-color); }
 
-    .modal-close:hover {
-      background: var(--bg-hover);
-      color: var(--text-color);
-    }
-
-    .modal-body {
-      padding: 20px;
-    }
+    .modal-body { padding: 16px 18px; }
 
     .modal-footer {
-      padding: 16px 20px;
+      padding: 12px 18px;
       border-top: 1px solid var(--border-color);
       display: flex;
       justify-content: flex-end;
-      gap: 8px;
     }
 
-    .ani-options {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
+    .ani-options { display: flex; flex-direction: column; gap: 8px; }
 
     .ani-option {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 14px 16px;
+      padding: 12px 14px;
       background: var(--bg-color);
       border: 2px solid var(--border-color);
-      border-radius: 8px;
+      border-radius: var(--radius);
       cursor: pointer;
-      transition: all 0.15s ease;
+      transition: all var(--transition);
       font-size: 14px;
       font-weight: 500;
       color: var(--text-color);
     }
 
-    .ani-option:hover {
-      border-color: var(--primary-color);
-      background: rgba(0, 188, 235, 0.05);
-    }
-
-    .ani-option.selected {
-      border-color: var(--primary-color);
-      background: rgba(0, 188, 235, 0.1);
-    }
-
-    .ani-option svg {
-      color: var(--primary-color);
-    }
+    .ani-option:hover   { border-color: var(--primary-color); background: rgba(26,75,122,0.04); }
+    .ani-option.selected { border-color: var(--primary-color); background: rgba(26,75,122,0.08); }
+    .ani-option svg { color: var(--primary-color); }
 
     .btn-secondary {
       padding: 8px 16px;
       background: var(--bg-color);
       border: 1px solid var(--border-color);
       border-radius: 6px;
-      font-size: 13px;
-      font-weight: 500;
+      font-size: 12px;
+      font-weight: 600;
       cursor: pointer;
-      color: var(--text-color);
+      color: var(--text-secondary);
+      transition: background var(--transition);
     }
+    .btn-secondary:hover { background: var(--bg-hover); }
 
-    .btn-secondary:hover {
-      background: var(--bg-hover);
-    }
-
-    /* Search bar */
     .search-bar {
-      padding: 12px 16px;
+      padding: 10px 12px;
+      background: var(--bg-color);
       border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0;
     }
 
     .search-input-wrapper {
@@ -767,131 +528,84 @@ class CallbackWidget extends LitElement {
 
     .search-input-wrapper svg {
       position: absolute;
-      left: 12px;
-      width: 16px;
-      height: 16px;
+      left: 10px;
+      width: 14px;
+      height: 14px;
       color: var(--text-muted);
       pointer-events: none;
     }
 
     .search-input {
       width: 100%;
-      padding: 10px 12px 10px 38px;
+      padding: 8px 10px 8px 32px;
       border: 1px solid var(--border-color);
-      border-radius: 8px;
-      font-size: 13px;
-      background: var(--bg-color);
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: inherit;
+      background: var(--bg-secondary);
       color: var(--text-color);
-      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      transition: border-color var(--transition), box-shadow var(--transition);
     }
 
     .search-input:focus {
       outline: none;
       border-color: var(--primary-color);
-      box-shadow: 0 0 0 3px rgba(0, 188, 235, 0.1);
+      box-shadow: 0 0 0 3px rgba(26,75,122,0.1);
+      background: var(--bg-color);
     }
 
-    .search-input::placeholder {
-      color: var(--text-muted);
-    }
+    .search-input::placeholder { color: var(--text-muted); }
 
     .search-clear {
       position: absolute;
-      right: 8px;
+      right: 6px;
       background: none;
       border: none;
-      padding: 4px;
+      padding: 3px;
       cursor: pointer;
       color: var(--text-muted);
-      border-radius: 4px;
+      border-radius: 3px;
       display: flex;
       align-items: center;
-      justify-content: center;
     }
-
-    .search-clear:hover {
-      background: var(--bg-hover);
-      color: var(--text-color);
-    }
-
-    /* Priority indicators */
-    .priority-indicator {
-      width: 4px;
-      border-radius: 2px;
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-    }
-
-    .priority-normal {
-      background: var(--success-color);
-    }
-
-    .priority-warning {
-      background: var(--warning-color);
-    }
-
-    .priority-critical {
-      background: var(--danger-color);
-      animation: pulse-critical 2s ease-in-out infinite;
-    }
-
-    @keyframes pulse-critical {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.6; }
-    }
-
-    .callback-card {
-      position: relative;
-      padding-left: 20px;
-    }
+    .search-clear:hover { background: var(--bg-hover); color: var(--text-color); }
 
     .wait-time {
       font-size: 11px;
-      font-weight: 500;
+      font-weight: 700;
       padding: 2px 6px;
       border-radius: 4px;
-      margin-left: 8px;
+      margin-left: 6px;
+      font-variant-numeric: tabular-nums;
     }
+    .wait-time.normal   { background: rgba(22,163,74,0.1);  color: var(--success-color); }
+    .wait-time.warning  { background: rgba(217,119,6,0.1);  color: var(--warning-color); }
+    .wait-time.critical { background: rgba(227,25,55,0.1);  color: var(--danger-color); }
 
-    .wait-time.normal {
-      background: rgba(40, 167, 69, 0.1);
-      color: var(--success-color);
-    }
-
-    .wait-time.warning {
-      background: rgba(245, 158, 11, 0.1);
-      color: var(--warning-color);
-    }
-
-    .wait-time.critical {
-      background: rgba(220, 53, 69, 0.1);
-      color: var(--danger-color);
-    }
-
-    /* No results */
     .no-results {
-      padding: 40px 20px;
+      padding: 32px 16px;
       text-align: center;
       color: var(--text-muted);
+      font-size: 12px;
     }
 
     .no-results svg {
-      width: 48px;
-      height: 48px;
-      margin-bottom: 12px;
-      opacity: 0.5;
+      width: 40px;
+      height: 40px;
+      margin-bottom: 10px;
+      opacity: 0.4;
+      display: block;
+      margin-inline: auto;
     }
 
-    /* Custom fields */
     .custom-fields {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
-      padding: 10px 14px;
+      gap: 6px;
+      padding: 8px 10px;
       border-top: 1px solid var(--border-color);
-      background: var(--bg-hover);
+      background: var(--bg-secondary);
+      border-radius: 0 0 calc(var(--radius) - 1px) calc(var(--radius) - 1px);
     }
 
     .custom-field {
@@ -905,14 +619,14 @@ class CallbackWidget extends LitElement {
 
     .custom-field-label {
       font-size: 10px;
-      font-weight: 600;
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       color: var(--text-muted);
     }
 
     .custom-field-value {
-      font-size: 13px;
+      font-size: 12px;
       color: var(--text-color);
       word-break: break-word;
     }
@@ -943,59 +657,16 @@ class CallbackWidget extends LitElement {
     this.priorityCriticalMins = 120;
   }
 
-  connectedCallback() {
+  async connectedCallback() {
     super.connectedCallback();
-    
-    // Log all properties received from the layout
-    console.log('[CallbackWidget] === WIDGET CONNECTED ===');
-    console.log('[CallbackWidget] this.outdialAni:', this.outdialAni);
-    console.log('[CallbackWidget] this.outdialEp:', this.outdialEp);
-    console.log('[CallbackWidget] this.backendUrl:', this.backendUrl);
-    
-    // Deep inspect outdialAni
-    if (this.outdialAni) {
-      console.log('[CallbackWidget] outdialAni type:', typeof this.outdialAni);
-      console.log('[CallbackWidget] outdialAni constructor:', this.outdialAni?.constructor?.name);
-      
-      try {
-        // Try spread
-        const spread = [...this.outdialAni];
-        console.log('[CallbackWidget] outdialAni spread:', spread);
-        spread.forEach((item, i) => {
-          console.log(`[CallbackWidget] ANI[${i}]:`, item, 'type:', typeof item);
-          if (typeof item === 'object' && item !== null) {
-            console.log(`[CallbackWidget] ANI[${i}] keys:`, Object.keys(item));
-            console.log(`[CallbackWidget] ANI[${i}] JSON:`, JSON.stringify(item));
-          }
-        });
-      } catch (e) {
-        console.log('[CallbackWidget] Could not spread outdialAni:', e.message);
-      }
-      
-      try {
-        // Try slice
-        if (typeof this.outdialAni.slice === 'function') {
-          console.log('[CallbackWidget] outdialAni.slice():', this.outdialAni.slice());
-        }
-      } catch (e) {
-        console.log('[CallbackWidget] slice failed:', e.message);
-      }
-      
-      try {
-        // Try toJSON
-        if (typeof this.outdialAni.toJSON === 'function') {
-          console.log('[CallbackWidget] outdialAni.toJSON():', this.outdialAni.toJSON());
-        }
-      } catch (e) {
-        console.log('[CallbackWidget] toJSON failed:', e.message);
-      }
+    if (!document.querySelector('#mk-inter-font')) {
+      const link = document.createElement('link');
+      link.id = 'mk-inter-font';
+      link.rel = 'stylesheet';
+      link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap';
+      document.head.appendChild(link);
     }
-    
-    // Store reference to this widget on window for debugging
-    window._callbackWidget = this;
-    console.log('[CallbackWidget] Widget stored at window._callbackWidget for debugging');
-    
-    this._initSDK();
+    await this._initSDK();
     this._startPolling();
   }
 
@@ -1006,83 +677,53 @@ class CallbackWidget extends LitElement {
 
   async _initSDK() {
     try {
-      console.log('[CallbackWidget] _initSDK starting...');
-      
-      // Initialize config (matching working widget pattern)
       Desktop.config.init();
-      console.log('[CallbackWidget] Config initialized');
-
-      // Store reference to agent service (matching working widget pattern)
       window.myAgentService = Desktop.agentContact?.SERVICE;
-      console.log('[CallbackWidget] myAgentService:', window.myAgentService);
 
-      // Get agent details using the working pattern
       if (Desktop.agentContact?.SERVICE?.webex) {
         try {
           const agentDetails = await Desktop.agentContact.SERVICE.webex.fetchPersonData("me");
-          console.log('[CallbackWidget] Agent details:', agentDetails);
           this.agentId = agentDetails?.id || agentDetails?.emails?.[0] || null;
-          console.log('[CallbackWidget] Agent ID from fetchPersonData:', this.agentId);
         } catch (err) {
           console.warn('[CallbackWidget] fetchPersonData failed:', err);
         }
       }
 
-      // Fallback: try agentStateInfo if agentContact didn't work
       if (!this.agentId && Desktop.agentStateInfo?.latestData) {
         const agentInfo = Desktop.agentStateInfo.latestData;
-        console.log('[CallbackWidget] agentStateInfo latestData:', agentInfo);
         this.agentId = agentInfo?.agentId || agentInfo?.id || agentInfo?.agentSessionId || null;
         this.agentState = agentInfo?.subStatus || agentInfo?.status || 'Available';
       }
 
-      // Get Outdial ANI from agent profile if not set via property
       if (!this.outdialAni) {
         try {
-          // Try to get from Desktop.agentStateInfo
           const agentData = Desktop.agentStateInfo?.latestData;
-          console.log('[CallbackWidget] Looking for outdialAni in agentData:', agentData);
-          
-          // The outdial ANI might be in different places depending on config
-          this.outdialAni = agentData?.outDialAni || 
+          this.outdialAni = agentData?.outDialAni ||
                            agentData?.outdialAni ||
                            agentData?.dialAni ||
                            agentData?.ani ||
                            null;
-          
-          // Also check Desktop.dialer for default ANI
           if (!this.outdialAni && Desktop.dialer?.defaultAni) {
             this.outdialAni = Desktop.dialer.defaultAni;
           }
-          
-          console.log('[CallbackWidget] Outdial ANI from agent profile:', this.outdialAni);
         } catch (err) {
           console.warn('[CallbackWidget] Could not get outdialAni:', err);
         }
       }
 
-      console.log('[CallbackWidget] Final Agent ID:', this.agentId);
-      console.log('[CallbackWidget] Agent State:', this.agentState);
-      console.log('[CallbackWidget] Outdial ANI:', this.outdialAni);
-
-      // Try to create logger
       if (Desktop.logger) {
         try {
-          this._sdkLogger = Desktop.logger.createLogger('bs-callback-widget');
+          this._sdkLogger = Desktop.logger.createLogger('mk-callback-widget');
         } catch (e) {
           console.warn('[CallbackWidget] Logger creation failed:', e);
         }
       }
 
-      // Listen for state changes
       if (Desktop.agentStateInfo?.addEventListener) {
         Desktop.agentStateInfo.addEventListener('updated', (event) => {
-          console.log('[CallbackWidget] Agent state update event:', event);
           if (Array.isArray(event)) {
             const stateChange = event.find(item => item.name === 'subStatus');
-            if (stateChange) {
-              this.agentState = stateChange.value;
-            }
+            if (stateChange) this.agentState = stateChange.value;
           }
         });
       }
@@ -1092,7 +733,6 @@ class CallbackWidget extends LitElement {
     } catch (err) {
       console.error('[CallbackWidget] SDK init failed:', err);
       this.error = 'Failed to initialize SDK: ' + err.message;
-      // Still try to fetch callbacks
       await this._fetchCallbacks();
     }
   }
@@ -1208,49 +848,25 @@ class CallbackWidget extends LitElement {
     this.dialingId = callback.id;
 
     try {
-      console.log('[CallbackWidget] _dialCallback called');
-      console.log('[CallbackWidget] Callback data:', JSON.stringify(callback, null, 2));
-      
-      // Get access token from the agent service (same pattern as cherry picker)
-      const token = window.myAgentService?.webex?.token?.access_token;
-      console.log('[CallbackWidget] Access token available:', !!token);
-      
-      if (!token) {
-        throw new Error('No access token available for outdial');
-      }
+      const token = window.myAgentService?.webex?.token?.access_token || this.accessToken;
+      if (!token) throw new Error('No access token available for outdial');
 
-      // Get the outdial entry point - prefer widget property, then callback data
       const entryPointId = this.outdialEp || callback.entryPointId;
-      console.log('[CallbackWidget] Outdial Entry Point:', entryPointId);
+      if (!entryPointId) throw new Error('No Outdial Entry Point configured. Please set outdialEp in the desktop layout.');
 
-      if (!entryPointId) {
-        throw new Error('No Outdial Entry Point configured. Please set outdialEp in the desktop layout.');
-      }
-
-      // Get available ANIs
       const availableAnis = this._getAvailableAnis();
-      console.log('[CallbackWidget] Available ANIs:', availableAnis);
-
-      if (availableAnis.length === 0) {
-        throw new Error('No Outdial ANI configured. Set outdialAni or outdialAniList in the desktop layout.');
-      }
+      if (availableAnis.length === 0) throw new Error('No Outdial ANI configured. Set outdialAni or outdialAniList in the desktop layout.');
 
       let originAni;
 
-      // If multiple ANIs and none selected, show selector
       if (availableAnis.length > 1 && !this.selectedAni) {
-        console.log('[CallbackWidget] Multiple ANIs available, showing selector');
         this._pendingDialCallback = callback;
         this.showAniSelector = true;
-        this.dialingId = null; // Reset since we're waiting for selection
+        this.dialingId = null;
         return;
       }
 
-      // Use selected ANI or the only available one
       originAni = this.selectedAni || availableAnis[0];
-      console.log('[CallbackWidget] Using origin ANI:', originAni);
-
-      // Proceed with dial
       await this._executeOutdial(callback, entryPointId, originAni);
 
     } catch (err) {
@@ -1318,7 +934,6 @@ class CallbackWidget extends LitElement {
    * Handle ANI selection from modal
    */
   _selectAni(ani) {
-    console.log('[CallbackWidget] ANI selected:', ani);
     this.selectedAni = ani;
     this.showAniSelector = false;
 
@@ -1346,18 +961,10 @@ class CallbackWidget extends LitElement {
     this.dialingId = callback.id;
 
     try {
-      // Determine the WxCC API region
-      const datacenter = this._getDatacenter();
-      const apiBase = `https://api.wxcc-${datacenter}.cisco.com`;
-      console.log('[CallbackWidget] API base:', apiBase);
-
-      // Try Desktop.dialer first if available
       if (Desktop.dialer?.startOutdial) {
-        console.log('[CallbackWidget] Attempting Desktop.dialer.startOutdial');
-        
-        const outdialPayload = {
+        await Desktop.dialer.startOutdial({
           data: {
-            entryPointId: entryPointId,
+            entryPointId,
             destination: callback.ani,
             direction: 'OUTBOUND',
             origin: originAni,
@@ -1365,50 +972,30 @@ class CallbackWidget extends LitElement {
             outboundType: 'OUTDIAL',
             attributes: {},
           }
-        };
-        
-        console.log('[CallbackWidget] Outdial payload:', JSON.stringify(outdialPayload, null, 2));
-        
-        const dialResult = await Desktop.dialer.startOutdial(outdialPayload);
-        console.log('[CallbackWidget] Desktop.dialer result:', dialResult);
+        });
+      } else if (Desktop.dialer?.dial) {
+        console.warn('[CallbackWidget] startOutdial unavailable, falling back to dial');
+        await Desktop.dialer.dial(callback.ani);
       } else {
-        console.warn('[CallbackWidget] Desktop.dialer.startOutdial not available');
-        
-        if (Desktop.dialer?.dial) {
-          console.log('[CallbackWidget] Trying Desktop.dialer.dial');
-          await Desktop.dialer.dial(callback.ani);
-        } else {
-          throw new Error('No outdial method available. Please dial manually: ' + callback.ani);
-        }
+        throw new Error('No outdial method available. Please dial manually: ' + callback.ani);
       }
 
       this._log('Outdial initiated', { callbackId: callback.id, ani: callback.ani });
 
-      // Mark as completed and remove from list (call disposition handled by Cisco Desktop)
-      await fetch(`${this.backendUrl}/callbacks/${callback.id}/complete`, {
+      const completeRes = await fetch(`${this.backendUrl}/callbacks/${callback.id}/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          agentId: this.agentId,
-          outcome: 'dialed',
-          completedAt: new Date().toISOString()
-        })
+        body: JSON.stringify({ agentId: this.agentId, completedAt: new Date().toISOString() })
       });
+      if (!completeRes.ok) {
+        this._log('Complete call failed', { callbackId: callback.id, status: completeRes.status }, 'error');
+      }
 
-      // Remove from local list immediately for better UX
       this.callbacks = this.callbacks.filter(c => c.id !== callback.id);
-
-      this._log('Callback completed and removed', { callbackId: callback.id });
 
     } catch (err) {
       console.error('[CallbackWidget] Dial error:', err);
-      
-      // Extract useful error message
-      let errorMsg = err.message || String(err);
-      if (err.details?.msg?.errorMessage) {
-        errorMsg = err.details.msg.errorMessage;
-      }
-      
+      const errorMsg = err.details?.msg?.errorMessage || err.message || String(err);
       this._log('Dial failed', { error: errorMsg }, 'error');
       this.error = 'Dial failed: ' + errorMsg;
     } finally {
@@ -1544,17 +1131,14 @@ class CallbackWidget extends LitElement {
   render() {
     const stats = this._getStats();
     
-    // Count priority levels
     const criticalCount = this.callbacks.filter(c => !c.claimedBy && this._getPriorityLevel(c.abandonedAt) === 'critical').length;
     const warningCount = this.callbacks.filter(c => !c.claimedBy && this._getPriorityLevel(c.abandonedAt) === 'warning').length;
-    const normalCount = this.callbacks.filter(c => !c.claimedBy && this._getPriorityLevel(c.abandonedAt) === 'normal').length;
 
     return html`
       <div class="panel-container">
         <div class="panel-header">
           <div class="header-left">
             <div class="header-title">CallBack Queue</div>
-            <div class="header-subtitle">powered by <a href="https://bucher-suter.com" target="_blank">bucher+suter</a></div>
           </div>
           <div class="header-right">
             <div class="live-indicator">
@@ -1566,7 +1150,7 @@ class CallbackWidget extends LitElement {
 
         <div class="stats-bar">
           <span class="stat-pill pending">
-            Pending <span class="stat-pill-count">${normalCount}</span>
+            Pending <span class="stat-pill-count">${stats.pending}</span>
           </span>
           <span class="stat-pill claimed">
             Claimed <span class="stat-pill-count">${stats.claimed}</span>
@@ -1693,7 +1277,7 @@ class CallbackWidget extends LitElement {
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
                   </svg>
-                  <span>${this._formatPhoneNumber(ani)}</span>
+                  <span>${this._formatANI(ani)}</span>
                 </button>
               `)}
             </div>
@@ -1720,8 +1304,7 @@ class CallbackWidget extends LitElement {
     const statusBadgeClass = isClaimedByMe ? 'claimed' : (isClaimedByOther ? 'other' : 'pending');
 
     return html`
-      <div class="callback-card ${statusClass}">
-        <div class="priority-indicator priority-${priorityLevel}"></div>
+      <div class="callback-card ${statusClass} priority-${priorityLevel}">
         <div class="card-header">
           <div class="caller-info">
             <div class="caller-avatar">

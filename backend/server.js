@@ -30,7 +30,25 @@ const PORT = process.env.PORT || 3000;
 const CALLBACK_TTL_HOURS = parseInt(process.env.CALLBACK_TTL_HOURS) || 48;
 const CALLBACK_TTL_MS = CALLBACK_TTL_HOURS * 60 * 60 * 1000;
 
-console.log(`Callback TTL configured: ${CALLBACK_TTL_HOURS} hours`);
+// Optional API keys — set env vars to enable auth; leave unset to allow open access
+const ABANDON_API_KEY = process.env.ABANDON_API_KEY || null;
+const ADMIN_API_KEY   = process.env.ADMIN_API_KEY   || null;
+
+function requireAbandonKey(req, res, next) {
+  if (!ABANDON_API_KEY) return next();
+  if (req.headers['x-api-key'] !== ABANDON_API_KEY) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+}
+
+function requireAdminKey(req, res, next) {
+  if (!ADMIN_API_KEY) return next();
+  if (req.headers['x-api-key'] !== ADMIN_API_KEY) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+}
 
 // In-memory store (replace with database for production)
 // For production, use MongoDB, PostgreSQL, or Redis
@@ -49,15 +67,8 @@ app.use(express.json());
 // This eliminates the need for GitHub Pages
 app.use('/widget', express.static(join(__dirname, '../dist')));
 
-// Request logging - detailed for debugging
 app.use((req, res, next) => {
-  console.log('='.repeat(50));
   console.log(`${new Date().toISOString()} ${req.method} ${req.path}`);
-  console.log('Headers:', JSON.stringify(req.headers, null, 2));
-  if (req.body && Object.keys(req.body).length > 0) {
-    console.log('Body:', JSON.stringify(req.body, null, 2));
-  }
-  console.log('='.repeat(50));
   next();
 });
 
@@ -71,8 +82,8 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Debug endpoint - see all callbacks
-app.get('/api/debug', (req, res) => {
+// Debug endpoint - see all callbacks (admin only)
+app.get('/api/debug', requireAdminKey, (req, res) => {
   res.json({ 
     callbackCount: callbacks.length,
     callbacks: callbacks,
@@ -85,9 +96,7 @@ app.get('/api/debug', (req, res) => {
 // ============================================
 // Called by WxCC Flow via HTTP Request node when Abandoned=true
 
-app.post('/api/abandon', (req, res) => {
-  console.log('>>> ABANDON ENDPOINT HIT <<<');
-  console.log('Raw body:', req.body);
+app.post('/api/abandon', requireAbandonKey, (req, res) => {
   
   try {
     const {
@@ -111,11 +120,7 @@ app.post('/api/abandon', (req, res) => {
       ...otherFields
     } = req.body;
 
-    console.log('Parsed ANI:', ani);
-    console.log('Parsed Queue:', queue);
-
     if (!ani) {
-      console.log('ERROR: ANI is missing!');
       return res.status(400).json({ error: 'ANI is required' });
     }
 
@@ -128,8 +133,7 @@ app.post('/api/abandon', (req, res) => {
     );
 
     if (duplicate) {
-      console.log(`Duplicate abandon detected for ${ani}, skipping`);
-      return res.json({ 
+      return res.json({
         message: 'Duplicate detected', 
         id: duplicate.id 
       });
@@ -182,10 +186,9 @@ app.post('/api/abandon', (req, res) => {
     };
 
     callbacks.push(callback);
-    console.log(`New abandoned call recorded: ${ani} from queue ${queue}`);
-    console.log('Callback object:', JSON.stringify(callback, null, 2));
+    console.log(`Abandon recorded: ${ani} queue=${queue}`);
 
-    res.status(201).json({ 
+    res.status(201).json({
       message: 'Callback created', 
       id: callback.id 
     });
@@ -218,9 +221,9 @@ app.get('/api/callbacks', (req, res) => {
     return true;
   });
 
-  // Sort by abandonedAt descending (newest first)
-  activeCallbacks.sort((a, b) => 
-    new Date(b.abandonedAt).getTime() - new Date(a.abandonedAt).getTime()
+  // Sort oldest-first so highest-urgency callbacks appear at top
+  activeCallbacks.sort((a, b) =>
+    new Date(a.abandonedAt).getTime() - new Date(b.abandonedAt).getTime()
   );
 
   res.json({ 
@@ -256,12 +259,7 @@ app.post('/api/callbacks/:id/claim', (req, res) => {
   callback.claimedAt = claimedAt || new Date().toISOString();
   callback.status = 'claimed';
 
-  console.log(`Callback ${id} claimed by agent ${agentId}`);
-
-  res.json({ 
-    message: 'Callback claimed', 
-    callback 
-  });
+  res.json({ message: 'Callback claimed', callback });
 });
 
 // Release a callback
@@ -283,12 +281,7 @@ app.post('/api/callbacks/:id/release', (req, res) => {
   callback.claimedAt = null;
   callback.status = 'pending';
 
-  console.log(`Callback ${id} released by agent ${agentId}`);
-
-  res.json({ 
-    message: 'Callback released', 
-    callback 
-  });
+  res.json({ message: 'Callback released', callback });
 });
 
 // Mark as dialed
@@ -297,58 +290,30 @@ app.post('/api/callbacks/:id/dial', (req, res) => {
   const { agentId, dialedAt } = req.body;
 
   const callback = callbacks.find(c => c.id === id);
-  
-  if (!callback) {
-    return res.status(404).json({ error: 'Callback not found' });
-  }
+  if (!callback) return res.status(404).json({ error: 'Callback not found' });
 
   callback.dialedAt = dialedAt || new Date().toISOString();
   callback.status = 'dialed';
-
-  console.log(`Callback ${id} dialed by agent ${agentId}`);
-
-  res.json({ 
-    message: 'Callback marked as dialed', 
-    callback 
-  });
+  res.json({ message: 'Callback marked as dialed', callback });
 });
 
-// Mark as completed (optional, for when call ends)
+// Complete a callback — removes it from the store immediately
 app.post('/api/callbacks/:id/complete', (req, res) => {
   const { id } = req.params;
-  const { agentId, outcome, notes } = req.body;
-
-  const callback = callbacks.find(c => c.id === id);
-  
-  if (!callback) {
-    return res.status(404).json({ error: 'Callback not found' });
-  }
-
-  callback.completedAt = new Date().toISOString();
-  callback.status = 'completed';
-  callback.outcome = outcome || 'completed';
-  callback.notes = notes || null;
-
-  console.log(`Callback ${id} completed by agent ${agentId}`);
-
-  res.json({ 
-    message: 'Callback completed', 
-    callback 
-  });
-});
-
-// Delete a callback (admin only in production)
-app.delete('/api/callbacks/:id', (req, res) => {
-  const { id } = req.params;
   const index = callbacks.findIndex(c => c.id === id);
-  
-  if (index === -1) {
-    return res.status(404).json({ error: 'Callback not found' });
-  }
+  if (index === -1) return res.status(404).json({ error: 'Callback not found' });
 
   callbacks.splice(index, 1);
-  console.log(`Callback ${id} deleted`);
+  res.json({ message: 'Callback completed' });
+});
 
+// Delete a callback (admin)
+app.delete('/api/callbacks/:id', requireAdminKey, (req, res) => {
+  const { id } = req.params;
+  const index = callbacks.findIndex(c => c.id === id);
+  if (index === -1) return res.status(404).json({ error: 'Callback not found' });
+
+  callbacks.splice(index, 1);
   res.json({ message: 'Callback deleted' });
 });
 
@@ -373,11 +338,10 @@ app.get('/api/stats', (req, res) => {
   res.json(stats);
 });
 
-// Admin: Clear all (for testing)
-app.delete('/api/callbacks', (req, res) => {
+// Admin: Clear all
+app.delete('/api/callbacks', requireAdminKey, (req, res) => {
   const count = callbacks.length;
   callbacks = [];
-  console.log(`Cleared ${count} callbacks`);
   res.json({ message: `Cleared ${count} callbacks` });
 });
 

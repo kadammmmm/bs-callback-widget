@@ -2,7 +2,7 @@
 
 A custom Agent Desktop widget that surfaces abandoned calls for proactive agent follow-up. When customers disconnect during IVR or while waiting in queue, this solution captures the interaction data and presents it to agents for callback.
 
-**Powered by bucher+suter**
+**Built by Matt Kadas**
 
 ---
 
@@ -97,9 +97,11 @@ The backend is a Node.js/Express application that stores callback records and se
 | Variable | Value | Description |
 |----------|-------|-------------|
 | `CALLBACK_TTL_HOURS` | `48` | Hours before callbacks expire |
+| `ABANDON_API_KEY` | *(your secret)* | If set, WxCC Flow must send this in `X-API-Key` header on `POST /api/abandon` |
+| `ADMIN_API_KEY` | *(your secret)* | If set, required on all admin/debug endpoints |
 
 7. Click **Create Web Service**
-8. Note your service URL (e.g., `https://bs-callback-widget.onrender.com`)
+8. Note your service URL (e.g., `https://your-service.onrender.com`)
 
 **Custom Domain (Optional):**
 - In Render dashboard, go to Settings > Custom Domains
@@ -116,6 +118,8 @@ The backend is a Node.js/Express application that stores callback records and se
    - Root Directory: `backend`
 6. Add environment variables in **Variables** tab:
    - `CALLBACK_TTL_HOURS`: `48`
+   - `ABANDON_API_KEY`: *(your secret)*
+   - `ADMIN_API_KEY`: *(your secret)*
 7. Deploy and note your service URL
 
 #### Option 3: Fly.io
@@ -129,6 +133,8 @@ fly launch --name bs-callback-widget
 4. Set environment variables:
 ```bash
 fly secrets set CALLBACK_TTL_HOURS=48
+fly secrets set ABANDON_API_KEY=your-secret
+fly secrets set ADMIN_API_KEY=your-admin-secret
 ```
 5. Deploy:
 ```bash
@@ -151,8 +157,12 @@ CMD ["npm", "start"]
 
 Build and run:
 ```bash
-docker build -t bs-callback-widget .
-docker run -p 3000:3000 -e CALLBACK_TTL_HOURS=48 bs-callback-widget
+docker build -t callback-widget-backend .
+docker run -p 3000:3000 \
+  -e CALLBACK_TTL_HOURS=48 \
+  -e ABANDON_API_KEY=your-secret \
+  -e ADMIN_API_KEY=your-admin-secret \
+  callback-widget-backend
 ```
 
 #### Verify Backend Deployment
@@ -183,7 +193,7 @@ The widget is a LitElement web component bundled as an IIFE script.
 2. Build the widget locally:
 ```bash
 npm install
-npm run build
+NODE_ENV=production npm run build
 cp dist/callback-widget.js index.js
 ```
 3. Commit and push:
@@ -227,6 +237,7 @@ Add an HTTP Request node to your flow that triggers when a call is abandoned.
 | **Request URL** | `https://your-backend-url.com/api/abandon` |
 | **Method** | `POST` |
 | **Content Type** | `application/json` |
+| **Header: X-API-Key** | *(value of your `ABANDON_API_KEY` env var, if configured)* |
 
 #### Request Body
 
@@ -373,10 +384,10 @@ When `outdialAniList` contains multiple numbers, agents see a selection modal be
 | Property | Type | Required | Default | Description |
 |----------|------|----------|---------|-------------|
 | `backendUrl` | String | Yes | - | Backend API URL (include `/api`) |
-| `accessToken` | String | Yes | - | Set to `$STORE.auth.accessToken` |
 | `outdialEp` | String | Yes | - | Outdial Entry Point ID. Use `$STORE.agent.outDialEp` |
 | `outdialAni` | String | Yes* | - | Single Outdial ANI (e.g., `+18005551234`) |
 | `outdialAniList` | String | Yes* | - | Comma-separated ANIs for multi-select |
+| `accessToken` | String | No | - | Set to `$STORE.auth.accessToken` as fallback if SDK token unavailable |
 | `priorityWarningMins` | Number | No | `60` | Minutes until yellow warning indicator |
 | `priorityCriticalMins` | Number | No | `120` | Minutes until red critical indicator |
 
@@ -388,6 +399,8 @@ When `outdialAniList` contains multiple numbers, agents see a selection modal be
 |----------|----------|---------|-------------|
 | `PORT` | No | `3000` | Server port |
 | `CALLBACK_TTL_HOURS` | No | `48` | Hours before callbacks automatically expire |
+| `ABANDON_API_KEY` | No | *(open)* | If set, `POST /api/abandon` requires `X-API-Key: <value>` header |
+| `ADMIN_API_KEY` | No | *(open)* | If set, required on `GET /api/debug` and `DELETE /api/callbacks` endpoints |
 
 ### Priority Indicator Thresholds
 
@@ -403,17 +416,18 @@ When `outdialAniList` contains multiple numbers, agents see a selection modal be
 
 ### Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/health` | Health check with callback count and TTL |
-| `POST` | `/api/abandon` | Create callback record (called by Flow) |
-| `GET` | `/api/callbacks` | List pending callbacks |
-| `POST` | `/api/callbacks/:id/claim` | Claim a callback |
-| `POST` | `/api/callbacks/:id/release` | Release claimed callback |
-| `POST` | `/api/callbacks/:id/complete` | Mark as completed (removes from list) |
-| `GET` | `/api/stats` | Get callback statistics |
-| `GET` | `/api/debug` | Debug endpoint - view all callbacks |
-| `DELETE` | `/api/callbacks` | Clear all callbacks (admin/testing) |
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | `/health` | — | Health check with callback count and TTL |
+| `POST` | `/api/abandon` | `ABANDON_API_KEY` | Create callback record (called by Flow) |
+| `GET` | `/api/callbacks` | — | List pending/claimed callbacks, sorted oldest-first |
+| `POST` | `/api/callbacks/:id/claim` | — | Claim a callback for exclusive handling |
+| `POST` | `/api/callbacks/:id/release` | — | Release claimed callback back to pool |
+| `POST` | `/api/callbacks/:id/complete` | — | Remove callback after dial (immediate delete) |
+| `GET` | `/api/stats` | — | Get callback statistics |
+| `GET` | `/api/debug` | `ADMIN_API_KEY` | View full callback store |
+| `DELETE` | `/api/callbacks/:id` | `ADMIN_API_KEY` | Delete a single callback |
+| `DELETE` | `/api/callbacks` | `ADMIN_API_KEY` | Clear all callbacks |
 
 ### POST /api/abandon
 
@@ -446,27 +460,28 @@ Create a new callback record.
 
 ```bash
 # Clone repository
-git clone https://github.com/your-org/bs-callback-widget.git
-cd bs-callback-widget
+git clone https://github.com/your-username/wxcc-callback-widget.git
+cd wxcc-callback-widget
 
 # Install dependencies
 npm install
 
-# Build widget
-npm run build
+# Production build
+NODE_ENV=production npm run build
 
 # Run backend locally
 cd backend
 npm install
-npm run dev
+npm start
 ```
 
 ### Build Commands
 
 | Command | Description |
 |---------|-------------|
-| `npm run build` | Build widget to `dist/callback-widget.js` |
-| `npm run dev` | Watch mode for development |
+| `NODE_ENV=production npm run build` | Production build to `dist/callback-widget.js` (~287 KB minified) |
+| `npm run build` | Development build (larger, includes source maps) |
+| `npm run deploy` | Production build + copy to `index.js` for GitHub Pages |
 
 ### Project Structure
 
@@ -521,43 +536,41 @@ The default backend uses in-memory storage. For production:
 
 ### Console Debug Commands
 
-Run in browser console on Agent Desktop:
+Run in browser console on Agent Desktop to inspect the live widget instance:
 
 ```javascript
-// Find the widget
 function findWidget(root = document) {
-  let widget = root.querySelector('bs-callback-widget');
-  if (widget) return widget;
-  const allElements = root.querySelectorAll('*');
-  for (const el of allElements) {
+  let w = root.querySelector('bs-callback-widget');
+  if (w) return w;
+  for (const el of root.querySelectorAll('*')) {
     if (el.shadowRoot) {
-      widget = findWidget(el.shadowRoot);
-      if (widget) return widget;
+      w = findWidget(el.shadowRoot);
+      if (w) return w;
     }
   }
   return null;
 }
 
-const widget = findWidget();
-console.log('Widget:', widget);
-console.log('Backend URL:', widget.backendUrl);
-console.log('Outdial EP:', widget.outdialEp);
-console.log('Outdial ANI:', widget.outdialAni);
-console.log('Callbacks:', widget.callbacks);
+const w = findWidget();
+console.log('Backend URL:', w?.backendUrl);
+console.log('Outdial EP:', w?.outdialEp);
+console.log('Outdial ANI:', w?.outdialAni);
+console.log('Agent ID:', w?.agentId);
+console.log('Callbacks:', w?.callbacks);
 ```
 
 ---
 
 ## Support
 
-For issues or questions, contact the b+s delivery team or open an issue in the repository.
+For issues or questions, open an issue in the repository.
 
 ---
 
 ## License
 
-MIT License - bucher+suter
+MIT License - Matt Kadas
 
 ---
 
-**bucher+suter** - Cisco Contact Center Solutions Partner
+**Matt Kadas**
