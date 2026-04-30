@@ -14,6 +14,7 @@ A custom Agent Desktop widget that surfaces abandoned calls for proactive agent 
 - [Deployment](#deployment)
   - [Backend Deployment](#backend-deployment)
   - [Widget Deployment](#widget-deployment)
+- [Windows Server Deployment](#windows-server-deployment)
 - [WxCC Configuration](#wxcc-configuration)
   - [Flow Configuration](#flow-configuration)
   - [Desktop Layout Configuration](#desktop-layout-configuration)
@@ -64,7 +65,7 @@ A custom Agent Desktop widget that surfaces abandoned calls for proactive agent 
 
 - Webex Contact Center tenant with Flow Designer access
 - GitHub account (for widget hosting)
-- Backend hosting account (Render, Railway, Fly.io, or similar)
+- Backend hosting account (Render, Railway, Fly.io, or similar) **or** a Windows Server with Node.js 18+
 - Admin access to WxCC Control Hub for Desktop Layout configuration
 - Outdial Entry Point and ANI configured in WxCC
 
@@ -141,7 +142,11 @@ fly secrets set ADMIN_API_KEY=your-admin-secret
 fly deploy
 ```
 
-#### Option 4: Self-Hosted (Docker)
+#### Option 4: Windows Server (Self-Hosted)
+
+Use the included `deploy.ps1` script to install the backend as a persistent Windows service. See the [Windows Server Deployment](#windows-server-deployment) section below for full details.
+
+#### Option 5: Self-Hosted (Docker)
 
 ```dockerfile
 FROM node:18-alpine
@@ -496,8 +501,11 @@ bs-callback-widget/
 │   └── callback-widget.js    # Built widget (after npm run build)
 ├── docs/
 │   ├── COMPLETE-SETUP-GUIDE.md
+│   ├── DEPLOYMENT.md
 │   ├── FLOW-CONFIGURATION.md
 │   └── navigation-layout.json
+├── deploy.ps1                # Windows Server deployment script
+├── .env.example              # Environment variable template
 ├── package.json
 ├── webpack.config.cjs
 └── README.md
@@ -558,6 +566,66 @@ console.log('Outdial ANI:', w?.outdialAni);
 console.log('Agent ID:', w?.agentId);
 console.log('Callbacks:', w?.callbacks);
 ```
+
+---
+
+## Windows Server Deployment
+
+A self-contained deployment package is available for organizations that need to host the backend on their own Windows infrastructure.
+
+### What's Included
+
+| File | Purpose |
+|------|---------|
+| `deploy.ps1` | PowerShell script — installs dependencies, creates a Windows service, opens the firewall port |
+| `.env.example` | Template showing all supported environment variables |
+| `wxcc-callback-widget-deploy.zip` | Ready-to-extract archive of all required files (no `node_modules`) |
+
+### Requirements
+
+- Windows Server 2019 or 2022 (or Windows 10/11)
+- Node.js 18 or later ([nodejs.org](https://nodejs.org))
+- PowerShell 5.1+ (built into Windows)
+- Run as Administrator
+
+### Quick Start
+
+1. Extract `wxcc-callback-widget-deploy.zip` to your server (e.g., `C:\Apps\wxcc-callback-widget`)
+2. Open PowerShell **as Administrator** in that folder
+3. Run the deployment script:
+
+```powershell
+.\deploy.ps1
+```
+
+The script will:
+- Verify Node.js 18+ is installed
+- Prompt for port, TTL, and optional API keys
+- Install backend dependencies (`npm install --omit=dev`)
+- Install [PM2](https://pm2.keymetrics.io/) globally if not already present
+- Start the backend as a named PM2 process
+- Register PM2 with Windows Task Scheduler for auto-start on boot
+- Create an inbound Windows Firewall rule for the configured port
+- Run a health check and print all local network addresses
+
+### Options
+
+```powershell
+# Use a custom port
+.\deploy.ps1 -Port 8080
+
+# Use a custom service name
+.\deploy.ps1 -ServiceName MyCallbackService
+
+# Remove the service and firewall rule
+.\deploy.ps1 -Uninstall
+```
+
+### After Deployment
+
+Once running, use one of the displayed network addresses as your `backendUrl` in the WxCC Desktop Layout (e.g., `http://192.168.1.50:3000/api`). If this server is reachable from the public internet or via a reverse proxy, use that address instead.
+
+For complete post-deployment configuration (widget URL, WxCC Flow setup, Desktop Layout JSON), see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ---
 
